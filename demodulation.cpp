@@ -9,11 +9,7 @@ demodulation::demodulation(MainWindow* _mainWindow):
 //    wavelength_CentroidApproach(new double[128])
 //    Temp(new double[128])
 {
-    //step1: 按光源扫描波长整理数据，即将每一个波长的信号分开
-    //step2: 将这些波长信号累加
-    //step3: 画光谱
-    //step4: 最大值法确定中心波长/质点法确定中心波长
-    //step5: 温度判断算法
+    read_config();
 
     all_wavelength_data[0]=single_wave_data_1;
     all_wavelength_data[1]=single_wave_data_2;
@@ -85,6 +81,17 @@ demodulation::demodulation(MainWindow* _mainWindow):
 demodulation::~demodulation()
 {
 
+}
+
+void demodulation::read_config()
+{
+    QSettings *settings = new QSettings("C:/Qt_UDP_DTS/config.ini",QSettings::IniFormat);
+
+    //Read
+    settings->beginGroup("DETECTION");
+    threshold = settings->value("ALG_THRESHOLD",-1).toInt();
+    qDebug()<<"threshold= "<<threshold<<endl;
+    settings->endGroup();
 }
 
 
@@ -206,10 +213,10 @@ void demodulation::run()
         //定义阈值mean
         int mean = 0;
 
-        //第一个距离的波长值取平均后加3000
+        //第一个距离的波长值取平均后加一个阈值
         for(int m=0; m<64; m++)
             mean += all_wavelength_data[1][m];
-        mean = mean/64+3000;
+        mean = mean/64 + threshold;
 
         MAX_Temp = 0;
 

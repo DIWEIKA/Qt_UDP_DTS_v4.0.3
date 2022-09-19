@@ -13,42 +13,18 @@ MainWindow::MainWindow(QWidget *parent):
 {
     ui->setupUi(this);
 
-//   // Set Style Sheet
-//    qDebug()<<QDir::currentPath()<<endl;
-//    QFile file(QDir::currentPath()+"/res/my.qss");
-//    file.open(QFile::ReadOnly);
-//    QString styleSheet = tr(file.readAll());
-//    qApp->setStyleSheet(styleSheet);
+    read_config();
 
-//    //添加背景图
-    QPixmap Images("C:/Qt_UDP_DTS/black.jpg");
-//    QPalette Palette = this->palette();
-//    Palette.setBrush(QPalette::Background,Images);
-//    this->setPalette(Palette);
+//    set_style_sheet();
 
+//    set_background_image();
 
-    label = new QLabel(this);
-    label->setScaledContents(true);
-    label->setPixmap(Images);
-    label->lower();
-
-
-    //Set Local Message
-    QString localHostName = QHostInfo:: localHostName();
-    qDebug() <<"LocalHostName: "<<localHostName<<endl;
-//    ui->m_textBrowser->insertPlainText("LocalHostName: "+localHostName+"\n");
-    QHostInfo info = QHostInfo::fromName(localHostName);
-    QList<QHostAddress> strIpAddress  = info.addresses();
-    QHostAddress IpAddress =  strIpAddress.back();
-    qDebug() << "IpAddress: " << IpAddress<<endl;
-    qDebug()<<"--------------------------"<<endl;
-//    ui->m_textBrowser->insertPlainText("IpAddress: "+IpAddress.toString()+" Port: 7000 \n");
-
-    setWindowTitle(QString("Qt UDP DTS"));
+    setWindowTitle(APP_TITLE);
 
     init_widget_temp_distance();
-    init_widget_max_temp();
+//    init_widget_max_temp();
 
+    //定义定时器
     Temp_Display_Timer = new QTimer(); // 温度-距离波形图显示计时器
     Temp_Display_Timer->setTimerType(Qt::PreciseTimer);
     Temp_save_Timer = new QTimer(); // 温度-距离波形图存储计时器
@@ -58,14 +34,17 @@ MainWindow::MainWindow(QWidget *parent):
 
     //计时器定时响应
     connect(Temp_Display_Timer,&QTimer::timeout,this,&MainWindow::echarts_load_temp);
-    connect(Temp_save_Timer,&QTimer::timeout,this,&MainWindow::Open_Temp_Save_Thread);
-    connect(Alarm_Timer,&QTimer::timeout,this,&MainWindow::start_alarm);
-
+//    connect(Temp_save_Timer,&QTimer::timeout,this,&MainWindow::Open_Temp_Save_Thread);
+//    connect(Alarm_Timer,&QTimer::timeout,this,&MainWindow::start_alarm);
     //线程结束时响应
     connect(m_udp_recv,&udp_recv::finished,this,&MainWindow::FinishUdp_recvThread);
-//    connect(m_hextodec,&HEXtoDEC::finished,this,&MainWindow::FinishHEXtoDECThread);
+    connect(m_udp_send,&udp_send::finished,this,&MainWindow::FinishUdp_sendThread);
     connect(m_demodulation,&demodulation::finished,this,&MainWindow::FinishDemodulationThread);
     connect(m_temp_distance_save,&Temp_distance_save::finished,this,&MainWindow::FinishTemp_saveThread);
+
+    start_detection();
+
+//    m_udp_send->start();
 }
 
 MainWindow::~MainWindow()
@@ -73,51 +52,90 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::paintEvent(QPaintEvent *){
-    label->resize(this->size());
+//void MainWindow::paintEvent(QPaintEvent *){
+//    label->resize(this->size());
+//}
+
+//读取配置文件
+void MainWindow::read_config()
+{
+    QSettings *settings = new QSettings("C:/Qt_UDP_DTS/config.ini",QSettings::IniFormat);
+
+    //Read
+    settings->beginGroup("MAIN");
+    int APP_TITLE = settings->value("APP_TITLE","").toInt();
+    qDebug()<<"APP_TITLE = "<<APP_TITLE<<endl;
+    settings->endGroup();
+
+    settings->beginGroup("RESOURCE");
+//    BGD_IMAGE = settings->value("BGD_IMAGE","").toString();
+//    qDebug()<<"BGD_IMAGE = "<<BGD_IMAGE<<endl;
+    TEMP_DIST_HTML = settings->value("TEMP_DIST_HTML","").toString();
+    qDebug()<<"TEMP_DIST_HTML = "<<TEMP_DIST_HTML<<endl;
+    STYLE_SHEET = settings->value("STYLE_SHEET","").toString();
+    qDebug()<<"STYLE_SHEET = "<<STYLE_SHEET<<endl;
+    settings->endGroup();
+
+    settings->beginGroup("DETECTION");
+    int ALM_TEMP_THR = settings->value("ALM_TEMP_THR",-1).toInt();
+    qDebug()<<"ALM_TEMP_THR = "<<ALM_TEMP_THR<<endl;
+    settings->endGroup();
+
 }
 
-//初始化widget_temp_distance
+//设置qt样式表
+void MainWindow::set_style_sheet()
+{
+    qDebug()<<QDir::currentPath()<<endl;
+    QFile file(STYLE_SHEET);
+    file.open(QFile::ReadOnly);
+    QString styleSheet = tr(file.readAll());
+    qApp->setStyleSheet(styleSheet);
+}
+
+//设置背景图
+//void MainWindow::set_background_image()
+//{
+//    QPixmap Images(BGD_IMAGE);
+//    label = new QLabel(this);
+//    label->setScaledContents(true);
+//    label->setPixmap(Images);
+//    label->lower();
+//}
+
+
+
+//初始化html
 void MainWindow::init_widget_temp_distance()
 {
     /*--关联WebEngineView与html文件--*/
     m_temp_distance_widget = ui->temp_distance_widget;
     m_temp_distance_widget->setContextMenuPolicy(Qt::NoContextMenu);
-    m_temp_distance_widget->load(QUrl::fromLocalFile(/*QDir::currentPath()+*/"C:/Qt_UDP_DTS/Temp_distance_widget.html"));
+    m_temp_distance_widget->load(QUrl::fromLocalFile(/*QDir::currentPath()+*/TEMP_DIST_HTML));
 
     //QWebEngineView 在 load 完一个页面后会发出一个已完成的信号,依据 QWebEngineView 的大小来设置 EChart 的大小的
     connect(m_temp_distance_widget,&QWebEngineView::loadFinished,this,&MainWindow::onResizeEcharts5);
 }
 
-void MainWindow::init_widget_max_temp()
-{
-    /*--关联WebEngineView与html文件--*/
-    m_max_temp_widget = ui->max_temp_widget;
-    m_max_temp_widget->setContextMenuPolicy(Qt::NoContextMenu);
-    m_max_temp_widget->load(QUrl::fromLocalFile(/*QDir::currentPath()+*/"C:/Qt_UDP_DTS/max_temperature2.html"));
 
-    //QWebEngineView 在 load 完一个页面后会发出一个已完成的信号,依据 QWebEngineView 的大小来设置 EChart 的大小的
-    connect(m_max_temp_widget,&QWebEngineView::loadFinished,this,&MainWindow::onResizeEcharts6);
-}
-
-//echarts加载temp数据
+//echarts加载数据
 void MainWindow::echarts_load_temp()
 {
-    /*--传递Temp[]--*/
+    /*------传递Temp[]--------*/
     //1.使用 QJonsObject 来组成一个 JSON 对象
     QJsonObject seriesData;
 
     //2.使用 QJsonArray 往 JSON 对象中添加一数组
     QJsonArray amplitude;
-    for(int i=0; i<128; i++) {
+    for(int i=4; i<128; i++) {
         //如果中心波长的温度值是0 则不画出该点
 //        if(m_demodulation->Temp[i]==0) continue;
 
         //如果温度值太小，则不画出该点
 //        if(m_demodulation->Temp[i]<-120) continue;
 
-         //如果温度值>100，则不画出该点
-        if(m_demodulation->Temp[i]>350) continue;
+         //如果温度值>300，则不画出该点
+        if(m_demodulation->Temp[i]>250) continue;
 
         amplitude.push_back(m_demodulation->Temp[i]);
     }
@@ -132,7 +150,7 @@ void MainWindow::echarts_load_temp()
     //5.调用 QWebEngineView的 page()->runJavaScript("function(str)") 来运行 JS 方法
     m_temp_distance_widget->page()->runJavaScript(js);
 
-    /*--传递MAX_Temp--*/
+    /*--------传递MAX_Temp-------*/
     //1.使用 QJonsObject 来组成一个 JSON 对象
     QJsonObject temp_Obj;
 
@@ -149,15 +167,47 @@ void MainWindow::echarts_load_temp()
     QString js2 = QString("load2(%1)").arg(optionStr2);
 
     //5.调用 QWebEngineView的 page()->runJavaScript("function(str)") 来运行 JS 方法
-    m_max_temp_widget->page()->runJavaScript(js2);
+    m_temp_distance_widget->page()->runJavaScript(js2);
 
-    //温度过热报警计时
-    if(m_demodulation->MAX_Temp>=180) start_alarm();
-    else {
-        if(Alarm_Timer->isActive()) Alarm_Timer->stop();
-        alarm_count = 0;
-    }
-    ui->lcd_alarm->display(QString("%1").arg(alarm_count));
+    /*-------传递template_temp-------*/
+    //1.使用 QJonsObject 来组成一个 JSON 对象
+    QJsonObject template_temp_obj;
+
+    //2.使用 QJsonArray 往 JSON 对象中添加一数组
+    QJsonArray template_temp_json1, template_temp_json2, template_temp_json3,
+            template_temp_json4, template_temp_json5;
+
+//    for(int j=2; j<14;j+=3){
+//        template_temp_json.push_back(m_demodulation->Temp[j]);
+//    }
+    template_temp_json1.push_back(m_demodulation->Temp[28]);
+    template_temp_json2.push_back(m_demodulation->Temp[3]);
+    template_temp_json3.push_back(m_demodulation->Temp[30]);
+    template_temp_json4.push_back(m_demodulation->Temp[32]);
+    template_temp_json5.push_back(m_demodulation->Temp[8]);
+
+    template_temp_obj.insert("template_temp1", template_temp_json1);
+    template_temp_obj.insert("template_temp2", template_temp_json2);
+    template_temp_obj.insert("template_temp3", template_temp_json3);
+    template_temp_obj.insert("template_temp4", template_temp_json4);
+    template_temp_obj.insert("template_temp5", template_temp_json5);
+
+    //3.使用 QJsonDocument 来将 JSON 对象转化成字符串
+    QString optionStr3 = QJsonDocument(template_temp_obj).toJson();
+
+    //4.调用js的load3()方法
+    QString js3 = QString("load3(%1)").arg(optionStr3);
+
+    //5.调用 QWebEngineView的 page()->runJavaScript("function(str)") 来运行 JS 方法
+    m_temp_distance_widget->page()->runJavaScript(js3);
+
+//    //温度过热报警计时
+//    if(m_demodulation->MAX_Temp >= ALARM_TEMP_THRESHOLD) start_alarm();
+//    else {
+//        if(Alarm_Timer->isActive()) Alarm_Timer->stop();
+//        alarm_count = 0;
+//    }
+////    ui->lcd_alarm->display(QString("%1").arg(alarm_count));
 }
 
 void MainWindow::Open_Temp_Save_Thread()
@@ -170,68 +220,28 @@ void MainWindow::Open_Temp_Save_Thread()
 void MainWindow::start_alarm()
 {
     alarm_count++;
-    ui->lcd_alarm->display(QString("%1").arg(alarm_count));
+    //    ui->lcd_alarm->display(QString("%1").arg(alarm_count));
 }
 
-//点击读取文件按钮
-//void MainWindow::on_btn_readfls_clicked()
-//{
-//    //打开文件选择对话框
-//    QString fileName = QFileDialog::getOpenFileName(this, tr("open file"), " ",  tr("txt(*.txt);;Allfile(*.*)"));
-
-//    qDebug()<<fileName<<endl;
-
-//    ui->m_textBrowser->insertPlainText(QDateTime::currentDateTime().toString("yyyy-MMdd-hh:mm:ss ")+QString("File Dir: ")+fileName+"\n");
-
-//    /*--以流的方式打开.txt文件*/
-//    char buf[32];
-
-//    ifstream infile;
-//    infile.open(fileName.toStdString().data(),std::ifstream::in);
-
-//    if(!infile.is_open()) {
-//        qDebug()<<"Open File Error!"<<endl;
-
-//        ui->m_textBrowser->insertPlainText(QDateTime::currentDateTime().toString("yyyy-MMdd-hh:mm:ss ")+QString("Open File Error!")+"\n");
-
-//        delete[] raw_data; //释放动态分配的内存
-
-//        return;
-//    }
-//    else
-//        qDebug()<<"Open File Succeed!"<<endl;
-//    ui->m_textBrowser->insertPlainText(QDateTime::currentDateTime().toString("yyyy-MMdd-hh:mm:ss ")+QString("Open File Succeed!")+"\n");
-
-//    for(int i=0;i<1250100;i++){
-//        infile >> buf; //>>运算符当 >> 遇到空格或换行时，就会终止，并在下次进行 >> 时，从空格或换行后继续进行
-
-//        raw_data[i] = strtod(buf,NULL); //char[]转double数字
-//    }
-
-//    infile.close();
-
-//}
-
-//点击开始解调按钮
-void MainWindow::on_btn_demodulation_clicked()
+//开始接收数据并检测
+void MainWindow::start_detection()
 {
+    //开始接收数据线程
+    m_udp_recv->start();
 
+//    QThread::msleep(1000); //延迟ms
+
+//    m_hextodec->start();
+
+//    QThread::msleep(1000); //延迟ms
+
+    //开始解调数据线程
+    m_demodulation->start();
+
+    //定时器控制echarts_load_temp()显示 ms
+    if(!Temp_Display_Timer->isActive()) Temp_Display_Timer->start(1000);
 }
 
-//点击保存数据按钮 保存温度-距离数据
-void MainWindow::on_btn_save_temp_clicked()
-{
-    //打开文件夹对话框获取存储文件路径
-    m_temp_distance_save->saveFilename = QFileDialog::getExistingDirectory(this, tr("选择文件保存路径"), "./", QFileDialog::ShowDirsOnly);
-
-//    ui->m_textBrowser->insertPlainText(QDateTime::currentDateTime().toString("yyyy-MMdd-hh:mm:ss ")
-//                                       +QString("Temperature-Distance Data have been saved at!")+m_temp_distance_save->saveFilename+"\n");
-
-//    m_temp_distance_save->start();
-    if(!Temp_save_Timer->isActive()) Temp_save_Timer->start(60000); //存60s数据
-
-//    ui->m_textBrowser->insertPlainText(QDateTime::currentDateTime().toString("yyyy-MMdd-hh:mm:ss ")+QString("Start Saving Temperature-Distance Data!")+"\n");
-}
 
 void MainWindow::FinishUdp_recvThread()
 {
@@ -239,11 +249,12 @@ void MainWindow::FinishUdp_recvThread()
     m_udp_recv->wait();
 }
 
-//void MainWindow::FinishHEXtoDECThread()
-//{
-//    m_hextodec->quit();
-//    m_hextodec->wait();
-//}
+void MainWindow::FinishUdp_sendThread()
+{
+    m_udp_send->quit();
+    m_udp_send->wait();
+}
+
 
 void MainWindow::FinishDemodulationThread()
 {
@@ -269,56 +280,19 @@ void MainWindow::onResizeEcharts5()
     m_temp_distance_widget->page()->runJavaScript(js);
 }
 
-void MainWindow::onResizeEcharts6()
-{
-    isLoaded6 = true;
-    QJsonObject sizeData2;
-    sizeData2.insert("width", m_max_temp_widget->width() - 20);
-    sizeData2.insert("height", m_max_temp_widget->height() - 20);
-    QString sizeStr2 = QJsonDocument(sizeData2).toJson();
-    QString js2 = QString("setSize(%1)").arg(sizeStr2);
-    m_max_temp_widget->page()->runJavaScript(js2);
-}
 
 //因为我们实现在窗口改变大小时 ECharts 也跟着变化，所以我们要在 resizeEvent 时设置也要设置大小
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
     if(isLoaded5) onResizeEcharts5();
-    if(isLoaded6) onResizeEcharts6();
+
 }
 
-//点击开始接收按钮
-void MainWindow::on_btn_recv_clicked()
-{
-//    ui->m_textBrowser->insertPlainText(QDateTime::currentDateTime().toString("yyyy-MMdd-hh:mm:ss ")
-//                                       +QString("Start Reciving Data! ")+"\n");
+//点击设定最大值法寻峰阈值
+//void MainWindow::on_btn_threshold_clicked()
+//{
+//    m_demodulation->threshold = ui->edit_threshold->text().toInt();
 
-
-
-    //receive from FPGA
-    m_udp_recv->start();
-
-//    QThread::msleep(1000); //延迟ms
-
-//    m_hextodec->start();
-
-//    QThread::msleep(1000); //延迟ms
-
-    m_demodulation->start();
-
-    //定时器控制echarts_load_temp()显示 ms
-    if(!Temp_Display_Timer->isActive()) Temp_Display_Timer->start(1000);
-}
-
-//点击发送指令按钮
-void MainWindow::on_m_send_clicked()
-{
-//    send_data = ui->m_lineEdit->text();
-
-//    ui->m_textBrowser->insertPlainText(QDateTime::currentDateTime().toString("yyyy-MMdd-hh:mm:ss ")
-//                                       +QString("Start Sending Data: ")+send_data+"\n");
-
-    //send order to FPGA
-    m_udp_send->start();
-}
+//    QMessageBox::about(this,tr("Attention"),tr("Threshold Set Succeeded!"));
+//}
 

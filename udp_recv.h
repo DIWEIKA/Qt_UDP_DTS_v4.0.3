@@ -17,12 +17,15 @@ public:
 
     MainWindow* m_mainwindow;
 
+    void read_config();
+
     //winSocket API
     WSADATA wsaData;
     WORD sockVersion;
     SOCKET echo_socket_WIN;
     sockaddr_in addr_WIN;
     sockaddr_in src_addr_WIN;
+    int PORT=8080;
     int src_addr_len = sizeof(src_addr_WIN);
     int net_pack_size; //UDP实际接收一帧数据长度
     QByteArray p_echo_net_pack_HEX;

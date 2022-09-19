@@ -1,14 +1,16 @@
 #ifndef UDP_SEND_H
 #define UDP_SEND_H
 
-#include <WinSock2.h>
-#include <Windows.h>
+//#include <WinSock2.h>
+//#include <Windows.h>
 #include <mainwindow.h>
 #include <QThread>
 #include "CirQueue.h"
 #include <stdio.h>
+#include <QUdpSocket>
 
 class MainWindow;
+class QUdpSocket;
 
 class udp_send : public QThread
 {
@@ -19,12 +21,12 @@ public:
 
     MainWindow* m_mainwindow;
 
-    //winSocket API
-    WSAData wasData;
-    SOCKET sendSocket;
-    SOCKADDR_IN receiverAddr;
-    int addrLength = 0;
-    int ret = 0;
+    QUdpSocket *sender;
+    QString desAddress;
+    int desPort;
+    QString order;
+
+    void read_config();
 
 protected:
     void run();

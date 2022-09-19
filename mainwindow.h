@@ -42,7 +42,7 @@ public:
     ~MainWindow();
 
     Ui::MainWindow *ui;
-//    double* raw_data;
+    //    double* raw_data;
     demodulation* m_demodulation;
     Temp_distance_save* m_temp_distance_save;
     udp_recv* m_udp_recv;
@@ -59,42 +59,50 @@ public:
     QTimer* Temp_Display_Timer;
     QTimer* Temp_save_Timer;
     QTimer* Alarm_Timer;
-
-     QLabel *label;
-         void paintEvent(QPaintEvent*) override;
-
+//    QLabel *label;
+//    void paintEvent(QPaintEvent*) override;
     int alarm_count=0; //±¨¾¯¼ÆÊ±
 
+    QString APP_TITLE;
+    QString BGD_IMAGE;
+    QString TEMP_DIST_HTML;
+    QString STYLE_SHEET;
+    int ALARM_TEMP_THRESHOLD;
+
+
+    void set_style_sheet();
+//    void set_background_image();
+    void read_config();
     void init_widget_temp_distance();
 
-    void init_widget_max_temp();
+    //    void init_widget_max_temp();
 
     void echarts_load_temp();
-
     void Open_Temp_Save_Thread();
-
     void start_alarm();
+    void start_detection();
 
 signals:
     void sendToRaw_wave_widget(double* _senddata);
 
 
 private slots:
-    void on_btn_demodulation_clicked();
+    //    void on_btn_demodulation_clicked();
 
-    void on_btn_save_temp_clicked();
+    //    void on_btn_save_temp_clicked();
 
     void FinishUdp_recvThread();
-//    void FinishHEXtoDECThread();
+    void FinishUdp_sendThread();
     void FinishDemodulationThread();
     void FinishTemp_saveThread();
 
     void onResizeEcharts5();
-    void onResizeEcharts6();
 
-    void on_btn_recv_clicked();
+    //    void on_btn_recv_clicked();
 
-    void on_m_send_clicked();
+    //    void on_m_send_clicked();
+
+    //    void on_btn_threshold_clicked();
 
 public slots:
 

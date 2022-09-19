@@ -20,6 +20,8 @@ public:
 
     MainWindow* m_mainwindow;
 
+    void read_config();
+
     double* raw_data;
     int** all_wavelength_data;
     int single_wave_data_1[128]={'\0'};
@@ -92,6 +94,7 @@ public:
     int wavelength_CentroidApproach[128]={'\0'};
     int Temp[128]={'\0'};
     int MAX_Temp = 0.0; //定义最大温度值
+    int threshold = 3000; //定义寻峰阈值
 
     add_wave_widget* m_add_wave_widget;
 //    SurfacePlot spectrum_wava;
