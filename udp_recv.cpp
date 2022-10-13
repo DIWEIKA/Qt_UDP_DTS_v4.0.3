@@ -2,6 +2,7 @@
 
 udp_recv::udp_recv(MainWindow* _mainwindow) :
     m_mainwindow(_mainwindow),
+    PORT(8080),
     net_pack_size(0),
     lenoRecv(1024),
     lenoRecvHEX(2*lenoRecv),
@@ -9,6 +10,7 @@ udp_recv::udp_recv(MainWindow* _mainwindow) :
     CHdata2(make_shared<CirQueue<int>>(LenoUDP)),
     pack_HEX_33(new char[33*1024*2]),
     pack_HEX_Resolve(new char[33*1024*2])
+
 {
     read_config();
 

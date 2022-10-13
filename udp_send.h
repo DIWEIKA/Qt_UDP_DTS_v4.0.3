@@ -17,7 +17,7 @@ class udp_send : public QThread
     Q_OBJECT
 
 public:
-    udp_send(MainWindow* _mainwindow);
+    explicit udp_send(MainWindow* _mainwindow);
 
     MainWindow* m_mainwindow;
 

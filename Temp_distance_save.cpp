@@ -20,7 +20,7 @@ void Temp_distance_save::run()
     if (!outfileAll.is_open()) return;
 
     for(int i=0; i<25002; i++){
-        double temp_double = m_demodultion->Temp[i];
+        const double temp_double = m_demodultion->Temp[i];
         char temp_char[16] = {'\0'} ;
 
         sprintf(temp_char,"%.8f", temp_double); //double转char* 精度为小数点后8位

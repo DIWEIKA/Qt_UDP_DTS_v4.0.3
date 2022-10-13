@@ -38,7 +38,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
     Ui::MainWindow *ui;
@@ -49,7 +49,7 @@ public:
     udp_send* m_udp_send;
     HEXtoDEC* m_hextodec;
 
-    QString send_data;
+//    QString send_data;
 
     QWebEngineView* m_temp_distance_widget;
     QWebEngineView* m_max_temp_widget;
@@ -59,16 +59,22 @@ public:
     QTimer* Temp_Display_Timer;
     QTimer* Temp_save_Timer;
     QTimer* Alarm_Timer;
+
 //    QLabel *label;
 //    void paintEvent(QPaintEvent*) override;
     int alarm_count=0; //±¨¾¯¼ÆÊ±
 
     QString APP_TITLE;
-    QString BGD_IMAGE;
+//    QString BGD_IMAGE;
     QString TEMP_DIST_HTML;
     QString STYLE_SHEET;
     int ALARM_TEMP_THRESHOLD;
 
+    bool yellow_flag = 0;
+    int yellow_count = 0;
+    bool red_flag = 0;
+    int reset_count = 0;
+    bool reset_flag = 1;
 
     void set_style_sheet();
 //    void set_background_image();

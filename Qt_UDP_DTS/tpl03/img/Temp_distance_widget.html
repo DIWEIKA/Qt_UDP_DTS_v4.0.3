@@ -14,7 +14,7 @@
 <body background="black.jpg">
 
     <!-- 为ECharts准�?�一�??具�?�大小（宽高）的Dom -->
-    <div id="main" style="width: 750px;height: 450px;"></div>
+    <div id="main" style="width: 750px; height: 450px; background:url(black.jpg); background-size: cover;"></div>
     <script type="text/javascript">
 
         // import red_dark from 'F:/Desktop/Qt UDP DTS/Qt_UDP_DTS_v3.2.1/res/red_dark.json';
@@ -238,6 +238,8 @@
                             fontSize: 34
                         },
                         splitLine: { show: false },
+                        axisLine: { show: false },//轴线不显示
+                        axisTick: { show: false },
                         data: sampledots,
                         axisLabel: {
                             // inside: false,
@@ -260,6 +262,7 @@
                         nameTextStyle: {
                             fontSize: 34
                         },
+                        splitLine: { show: false },
                         axisLabel: {
                             // inside: false,
                             textStyle: {
