@@ -77,7 +77,7 @@ demodulation::demodulation(MainWindow* _mainWindow):
 
 demodulation::~demodulation()
 {
-
+    delete[] all_wavelength_data;
 }
 
 void demodulation::read_config()
@@ -89,6 +89,8 @@ void demodulation::read_config()
     threshold = settings->value("ALG_THRESHOLD",-1).toInt();
     qDebug()<<"threshold= "<<threshold<<endl;
     settings->endGroup();
+
+    delete settings;
 }
 
 

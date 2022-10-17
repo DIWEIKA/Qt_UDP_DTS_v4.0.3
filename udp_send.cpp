@@ -10,6 +10,11 @@ udp_send::udp_send(MainWindow* _mainwindow):
     read_config();
 }
 
+udp_send::~udp_send()
+{
+
+}
+
 void udp_send::read_config()
 {
     QSettings *settings = new QSettings("C:/Qt_UDP_DTS/config.ini",QSettings::IniFormat);
@@ -20,6 +25,8 @@ void udp_send::read_config()
     desPort = settings->value("PORT",-1).toInt();
     order = settings->value("ORDER","").toString();
     settings->endGroup();
+
+    delete settings;
 }
 
 void udp_send::run()

@@ -14,6 +14,7 @@ class udp_recv : public QThread
     Q_OBJECT
 public:
     explicit udp_recv(MainWindow* _mainwindow);
+    ~udp_recv();
 
     MainWindow* m_mainwindow;
 

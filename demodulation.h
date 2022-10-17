@@ -6,8 +6,11 @@
 //#include <qwt3d_surfaceplot.h>
 #include <algorithm>
 
-#define WAVNUM 64 //波长数目
-#define DISNUM 128 //距离采样点点数
+//#define WAVNUM 64 //波长数目
+//#define DISNUM 128 //距离采样点点数
+
+enum { WAVNUM = 64 }; //波长数目
+enum { DISNUM = 128 }; //距离采样点点数
 
 class MainWindow;
 

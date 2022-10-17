@@ -118,7 +118,7 @@ void MainWindow::init_widget_temp_distance()
 }
 
 
-//echarts加载数据 3s刷新一次
+//echarts加载数据 1s刷新一次
 /**
  * JSON传数据步骤
  * 1.使用 QJonsObject 来组成一个 JSON 对象
@@ -129,58 +129,74 @@ void MainWindow::init_widget_temp_distance()
 */
 void MainWindow::echarts_load_temp()
 {
-    /*------传递Temp[]温度曲线--------*/
-    QJsonObject seriesData;
-    QJsonArray amplitude;
 
-    for(int i=1; i<15; i++) {
-        //如果中心波长的温度值是0 则不画出该点
-//        if(m_demodulation->Temp[i]==0) continue;
+//    /*------传递Temp[]温度曲线--------*/
+//    QJsonObject seriesData;
+//    QJsonArray amplitude;
 
-        //如果温度值太小，则不画出该点
-        if(m_demodulation->Temp[i]<30) continue;
+//    for(int i=1; i<15; i++) {
+//        //如果中心波长的温度值是0 则不画出该点
+////        if(m_demodulation->Temp[i]==0) continue;
 
-         //如果温度值太大，则不画出该点
-        if(m_demodulation->Temp[i]>250) continue;
+//        //如果温度值太小，则不画出该点
+//        if(m_demodulation->Temp[i]<30) continue;
 
-        amplitude.push_back(m_demodulation->Temp[i]);
-    }
-    seriesData.insert("amplitude", amplitude);
+//         //如果温度值太大，则不画出该点
+//        if(m_demodulation->Temp[i]>250) continue;
 
-    QString optionStr = QJsonDocument(seriesData).toJson();
+//        amplitude.push_back(m_demodulation->Temp[i]);
+//    }
+//    seriesData.insert("amplitude", amplitude);
 
-    QString js = QString("curve(%1)").arg(optionStr);
+//    QString optionStr = QJsonDocument(seriesData).toJson();
 
-    m_temp_distance_widget->page()->runJavaScript(js);
+//    QString js = QString("curve(%1)").arg(optionStr);
 
-    /*--------传递MAX_Temp温度仪表盘-------*/
+//    m_temp_distance_widget->page()->runJavaScript(js);
 
-    QJsonObject temp_Obj;
-    QJsonArray temp_json;
 
-    temp_json.push_back(m_demodulation->MAX_Temp);
 
-    temp_Obj.insert("temperature", temp_json);
 
-    QString optionStr2 = QJsonDocument(temp_Obj).toJson();
 
-    QString js2 = QString("board(%1)").arg(optionStr2);
-
-    m_temp_distance_widget->page()->runJavaScript(js2);
-
-    /*-------传递template_temp温度建模-------*/
     QJsonObject template_temp_obj;
     QJsonArray template_temp_json1, template_temp_json2, template_temp_json3,
             template_temp_json4, template_temp_json5;
 
-//    for(int j=2; j<14;j+=3){
-//        template_temp_json.push_back(m_demodulation->Temp[j]);
-//    }
-    template_temp_json1.push_back(32); //fake
-    template_temp_json2.push_back(m_demodulation->Temp[3]);
-    template_temp_json3.push_back(30); //fake
-    template_temp_json4.push_back(33); //fake
-    template_temp_json5.push_back(m_demodulation->Temp[8]);
+    int Temp_1,Temp_2,Temp_3,Temp_4,Temp_5;
+    Temp_1 = 28;  //fake data
+    Temp_2 = m_demodulation->Temp[33];
+    Temp_3 = 31; //fake data
+    Temp_4 = 26; //fake data
+    Temp_5 = m_demodulation->Temp[37];
+
+
+
+    QJsonObject temp_Obj; //存放“temperature”"region"两个键
+    QJsonArray temp_json;
+
+    //get the max of Temp, the region of the max Temp
+    Temp_Max= Temp_1;
+
+    vector<int>Temp_v{Temp_1,Temp_2,Temp_3,Temp_4,Temp_5};
+    for(int m=0;m<5;++m){
+        if(Temp_v[m]>Temp_Max){
+            Temp_Max = Temp_v[m];
+            max_region = m+1;
+        }
+    }
+
+        /*--------传递MAX_Temp-------*/
+    temp_json.push_back(Temp_Max);
+
+    temp_Obj.insert("temperature", temp_json);
+
+     /*-------传递template_temp温度建模-------*/
+
+    template_temp_json1.push_back(Temp_1);
+    template_temp_json2.push_back(Temp_2);
+    template_temp_json3.push_back(Temp_3);
+    template_temp_json4.push_back(Temp_4);
+    template_temp_json5.push_back(Temp_5);
 
     template_temp_obj.insert("template_temp1", template_temp_json1);
     template_temp_obj.insert("template_temp2", template_temp_json2);
@@ -194,69 +210,69 @@ void MainWindow::echarts_load_temp()
 
     m_temp_distance_widget->page()->runJavaScript(js3);
 
+    /*-------传递MAX_Region-------*/
+    QJsonArray region_json;
+
+    region_json.push_back(max_region);
+
+    temp_Obj.insert("region", region_json);
+
+    QString optionStr2 = QJsonDocument(temp_Obj).toJson();
+
+    QString js2 = QString("highTemp(%1)").arg(optionStr2);
+
+    m_temp_distance_widget->page()->runJavaScript(js2);
 }
 
-void MainWindow::Open_Temp_Save_Thread()
-{
-//    ui->m_textBrowser->insertPlainText(QDateTime::currentDateTime().toString("yyyy-MMdd-hh:mm:ss ")+QString("Start Saving Data! ")+"\n");
 
-    m_temp_distance_save->start();
-}
-
-//过热报警功能1s刷新一次
+//过热报警功能
 void MainWindow::start_alarm()
 {
-    /*------功能一:黄灯警告：温度高于160°低于180°开始计时，若3s后，温度仍在此区间，则开始报警------*/
+    /*------告警：消警状态下，若温度高于154°开始计数，若3s后，温度仍大于，则开始报警------*/
 
-    if(m_demodulation->MAX_Temp>=160 && m_demodulation->MAX_Temp<=180){
-        ++yellow_count;
-        yellow_flag = 1;
-        red_flag = 0;
-        reset_flag = 0;
-        reset_count = 0;
-        if(yellow_count>3){
+    if(reset_flag==1 /*&& red_flag==0*/ && /*m_demodulation->MAX_Temp*/Temp_Max>=154){
+        ++red_count;
+
+        if(red_count>=3){
             red_flag = 1;
-            yellow_flag = 0;
+            reset_flag = 0;
         }
     }
 
-    /*------功能二:红灯警告：若温度高于180°，无需等待，直接报警------*/
+    /*-------------消警：报警状态下，若温度小于85°开始计数，若3秒后，温度仍小于，则消警----------------*/
 
-    else if(m_demodulation->MAX_Temp>180){
-        yellow_flag = 0;
-        red_flag = 1;
-        reset_flag = 0;
-        reset_count = 0;
-    }
+    else if(red_flag==1 /*&& reset_flag==0*/ && /*m_demodulation->MAX_Temp*/Temp_Max<85){
 
-    /*-------------若温度小于160°，根据情况是否置零标志位----------------*/
-
-    else if((yellow_flag && m_demodulation->MAX_Temp<160) || (red_flag && m_demodulation->MAX_Temp<160)){
         ++reset_count;
-        if(reset_count>=2){
+
+        if(reset_count>=3){
             reset_flag = 1;
-            yellow_flag = 0;
             red_flag = 0;
         }
     }
 
-    else reset_flag = 1;
+    /*-------------其他：清零报警和消警计数器----------------*/
+    else{
+        red_count = 0;
+        reset_count = 0;
+    }
 
     /*--------传递flag-------*/
     QJsonObject flag_Obj;
-    QJsonArray flag_json1,flag_json2,flag_json3;
+    QJsonArray flag_json1,flag_json2;
 
-    flag_json1.push_back(yellow_flag);
-    flag_json2.push_back(red_flag);
-    flag_json3.push_back(reset_flag);
+//    red_flag = 1;
+//    reset_flag = 0;
+    flag_json1.push_back(red_flag);
+    flag_json2.push_back(reset_flag);
 
-    flag_Obj.insert("yellow_flag", flag_json1);
-    flag_Obj.insert("red_flag", flag_json2);
-    flag_Obj.insert("reset_flag", flag_json3);
+    flag_Obj.insert("red_flag", flag_json1);
+    flag_Obj.insert("reset_flag", flag_json2);
+
 
     QString optionStr2 = QJsonDocument(flag_Obj).toJson();
 
-    QString js_alarm = QString("alarm(str)").arg(optionStr2);
+    QString js_alarm = QString("baojing(%1)").arg(optionStr2);
 
     m_temp_distance_widget->page()->runJavaScript(js_alarm);
 }
@@ -271,7 +287,7 @@ void MainWindow::start_detection()
     m_demodulation->start();
 
     //定时器控制echarts_load_temp()显示 ms
-    if(!Temp_Display_Timer->isActive()) Temp_Display_Timer->start(3000);
+    if(!Temp_Display_Timer->isActive()) Temp_Display_Timer->start(1000);
 
     //定时器控制start_alarm()显示 ms
     if(!Alarm_Timer->isActive()) Alarm_Timer->start(1000);

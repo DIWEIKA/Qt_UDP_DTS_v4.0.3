@@ -64,17 +64,19 @@ public:
 //    void paintEvent(QPaintEvent*) override;
     int alarm_count=0; //报警计时
 
+     int Temp_Max = 0; //最大温度值
+     int max_region = 1; //最大温度的区域
+
     QString APP_TITLE;
 //    QString BGD_IMAGE;
     QString TEMP_DIST_HTML;
     QString STYLE_SHEET;
     int ALARM_TEMP_THRESHOLD;
 
-    bool yellow_flag = 0;
-    int yellow_count = 0;
-    bool red_flag = 0;
+    int red_count = 0;
+    int red_flag = 0;
     int reset_count = 0;
-    bool reset_flag = 1;
+    int reset_flag = 1;
 
     void set_style_sheet();
 //    void set_background_image();
@@ -84,7 +86,7 @@ public:
     //    void init_widget_max_temp();
 
     void echarts_load_temp();
-    void Open_Temp_Save_Thread();
+
     void start_alarm();
     void start_detection();
 

@@ -12,6 +12,7 @@ class Temp_distance_save : public QThread
     Q_OBJECT
 public:
     explicit Temp_distance_save(demodulation* _demodulation);
+    ~Temp_distance_save();
 
     demodulation* m_demodultion;
     QDateTime dateTime;

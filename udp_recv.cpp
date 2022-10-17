@@ -25,7 +25,7 @@ udp_recv::udp_recv(MainWindow* _mainwindow) :
         printf("winsocket error !");
     }
     addr_WIN.sin_family = AF_INET;
-    addr_WIN.sin_port = htons(8080); //8080
+    addr_WIN.sin_port = htons(8080);
     addr_WIN.sin_addr.S_un.S_addr = INADDR_ANY;
     if(::bind(echo_socket_WIN, (sockaddr *)&addr_WIN, sizeof(addr_WIN)) == SOCKET_ERROR)
     {
@@ -43,6 +43,12 @@ udp_recv::udp_recv(MainWindow* _mainwindow) :
 
 }
 
+udp_recv::~udp_recv()
+{
+    delete[] pack_HEX_33;
+    delete[] pack_HEX_Resolve;
+}
+
 void udp_recv::read_config()
 {
     QSettings *settings = new QSettings("C:/Qt_UDP_DTS/config.ini",QSettings::IniFormat);
@@ -52,6 +58,8 @@ void udp_recv::read_config()
     PORT = settings->value("PORT",-1).toInt();
     qDebug()<<"PORT= "<<PORT<<endl;
     settings->endGroup();
+
+    delete settings;
 }
 
 void udp_recv::run()
@@ -117,13 +125,9 @@ void udp_recv::run()
 
                         CHdata2->push(temp_DEC);
 
-
-
                     } //end for
 
                 } //end for
-
-                qDebug()<<"temp_DEC:  "<<endl;
 
             }//end if
 

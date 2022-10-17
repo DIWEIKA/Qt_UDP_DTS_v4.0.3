@@ -1,23 +1,55 @@
-<!DOCTYPE html>    
-<html>    
-<head>    
-<meta charset="utf-8" />    
-<title>div重叠 叠加实例 未排层叠顺序 www.jb51.net</title>    
-<style>    
-.div-relative{position:relative; color:#000; border:1px solid #000; width:500px; height:400px}    
-.div-a{ position:absolute; left:30px; top:30px; background:#F00; width:200px; height:100px}    
-/* css注释说明： 背景为红色 */    
-.div-b{ position:absolute; left:50px; top:60px; background:#FF0; width:400px; height:200px}    
-/* 背景为黄色 */    
-.div-c{ position:absolute; left:80px; top:80px; background:#00F; width:300px; height:300px}    
-/* DIV背景颜色为蓝色 */    
-</style>    
-</head>    
-<body>    
-<div class="div-relative">    
-<div class="div-a">我背景为红色</div>    
-<div class="div-b">我背景为黄色</div>    
-<div class="div-c">我背景为蓝色</div>    
-</div>    
-</body>    
-</html>  
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+	<meta charset="UTF-8">
+	<title>背景不停地闪烁</title>
+	<script>
+		var Color= new Array(16);   
+			Color[1] = "ff";
+			Color[2] = "ee";
+			Color[3] = "dd";
+			Color[4] = "cc";
+			Color[5] = "bb";
+			Color[6] = "aa";
+			Color[7] = "99";
+			Color[8] = "88";
+			Color[9] = "77";
+			Color[10] = "66";
+			Color[11] = "55";
+			Color[12] = "44";
+			Color[13] = "33";
+			Color[14] = "22";
+			Color[15] = "11";
+			Color[16] = "00";
+ 
+		 function fadeIn(where) {
+			if (where >= 1) {           
+				document.bgColor="#" + Color[where] +"0000";
+				where -= 1;                     
+				setTimeout("fadeIn("+where+")", 50); 
+			} 
+			else {
+				setTimeout('fadeOut(1)', 50);        
+			}
+		}
+ 
+		function fadeOut(where) {
+			if (where <=16) {         
+				document.bgColor="#" + Color[where] +"0000"; 
+				where += 1;                    
+				setTimeout("fadeOut("+where+")", 50)  
+			} 
+			else {
+				setTimeout("fadeIn(16)", 50);         
+			}
+		}
+    function dianwo3() {
+     
+      fadeIn(16)
+    }
+	</script>
+</head>
+<body >
+	<img id="button3" src="./img/button.png" onclick="dianwo3()">
+</body>
+</html>

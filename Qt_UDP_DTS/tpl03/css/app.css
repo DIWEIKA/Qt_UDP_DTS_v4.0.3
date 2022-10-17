@@ -56,7 +56,11 @@ body.bg02 {
 }
 
 .header-info-l {
-	left: 20px;
+	left: 5%;
+	top: 5%;
+	font-size: 50px;
+	text-align: center;
+
 }
 
 .header-info-r {
@@ -73,50 +77,41 @@ body.bg02 {
 	min-height: 555px;
 }
 
-input {
-	width: 50%;
-	outline-style: none;
-	text-align: center;
-	font-size: 70px;
-	font-family: Microsoft YaHei;
-	color: #5dc2fe;
-	background-color: transparent;
-	border: none;
-	position: absolute;
-	left: 30%;
-	top: 30%;
 
-}
 
-#button1{
+#button1 {
 	margin-left: 18%;
-	margin-top: 3.5%;
+	margin-top: 15.5%;
 	width: 30px;
 	height: 30px;
-	
+
 }
-#button2{
+
+#button2 {
 	margin-left: 14%;
 	margin-top: 0%;
 	width: 30px;
 	height: 30px;
 
 }
-#button3{
+
+#button3 {
 	margin-left: 13.5%;
 	margin-top: 0%;
 	width: 30px;
 	height: 30px;
 
 }
-#button4{
+
+#button4 {
 	margin-left: 13.5%;
 	margin-top: 0%;
 	width: 30px;
 	height: 30px;
 
 }
-#button5{
+
+#button5 {
 	margin-left: 14%;
 	margin-top: 0%;
 	width: 30px;
@@ -133,18 +128,20 @@ input {
 	right: 0;
 }
 
-
-#img1 {
-
-	animation: action 1s linear infinite;
+#alarm {
 	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
 	
-}
-#img2 {
-
 	animation: action 1s linear infinite;
-	position: absolute;
-	
 	
 }
 
@@ -165,6 +162,8 @@ input {
 		opacity: 0.9
 	}
 }
+
+
 
 
 #flexCon {
@@ -193,18 +192,6 @@ input {
 	padding: 15px;
 }
 
-.flex-cell-l,
-.flex-cell-r {
-	-webkit-flex: 2;
-	-ms-flex: 2;
-	flex: 2;
-}
-
-.flex-cell-c {
-	-webkit-flex: 3;
-	-ms-flex: 3;
-	flex: 3;
-}
 
 .flex-cell-lc {
 	-webkit-flex: 5;
@@ -224,16 +211,6 @@ input {
 	color: #5ac8fa;
 }
 
-.chart-div {
-	position: absolute;
-	top: 30px;
-	bottom: 0;
-	left: 0;
-	right: 0;
-	border-style: solid;
-	border-width: 26px 27px 27px;
-	border-image: url("../img/panel.png") 26 27 27 fill / 1 / 0 repeat;
-}
 
 .chart-origin {
 	position: absolute;
@@ -252,17 +229,17 @@ input {
 }
 
 
-.jianmo{
+.jianmo {
 	position: absolute;
 	left: 0px;
-	top: 30%;
+	top: 50%;
 	width: 100%;
-	height: 80%;
-	
+	height: 50%;
+
 
 }
 
-.window{
+.window1 {
 	position: absolute;
 	left: 0px;
 	top: 0px;
@@ -270,34 +247,52 @@ input {
 	width: 100%;
 	height: 100%;
 	opacity: 1;
-	
-	
-	
-  }
-  .tankuang{
+
+
+
+
+
+}
+
+
+#ss {
+	height: 100%;
+	width: 100%;
+	animation: action 1s linear infinite;
+}
+
+
+
+.tankuang {
 	position: absolute;
 	width: 50%;
-	height: 60%;
+	height: 75%;
 	border-radius: 5px;
 	margin: 5% auto;
-	background: #172d4dd7;
+	background: #20294dd7;
 	opacity: 1;
-	top:0px;
+	top: 0px;
 	left: 30%;
 
-  }
-  #header-right{
+
+
+
+}
+
+#header-right {
 	position: absolute;
-			  width: 25px;
-			  height: 25px;
-			  border-radius: 5px;
-			  background: red;
-			  color: #fff;
-			  right: 5px;
-			  top: 5px;
-			  text-align: center;
-	
-  }
+	width: 25px;
+	height: 25px;
+	border-radius: 5px;
+	background: red;
+	color: #fff;
+	right: 5px;
+	top: 5px;
+	text-align: center;
+
+
+
+}
 
 
 /* media query */

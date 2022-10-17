@@ -6,6 +6,11 @@ Temp_distance_save::Temp_distance_save(demodulation* _demodulation) :
 
 }
 
+Temp_distance_save::~Temp_distance_save()
+{
+
+}
+
 void Temp_distance_save::run()
 {
     dateTime = QDateTime::currentDateTime();
