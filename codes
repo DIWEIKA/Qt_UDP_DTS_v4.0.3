@@ -1,0 +1,3914 @@
+#include "mainwindow.h"
+
+#include <QApplication>
+
+int main(int argc, char *argv[])
+{
+    QApplication a(argc, argv);
+    QDir::setCurrent(a.applicationDirPath());
+    MainWindow w;
+    w.show();
+    return a.exec();
+}
+
+#ifndef MAINWINDOW_H
+#define MAINWINDOW_H
+
+#include "CirQueue.h"
+#include "udp_recv.h"
+#include "udp_send.h"
+//#include "HEXtoDEC.h"
+#include <QMainWindow>
+#include <QThread>
+#include <demodulation.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include "math.h"
+#include <fstream>
+#include <sstream>
+//#include "Temp_distance_save.h"
+#include <QtWebEngineWidgets>
+#include <QtWebChannel>
+//#include "webclass.h"
+#include <QResizeEvent>
+#include <algorithm>
+
+
+
+QT_BEGIN_NAMESPACE
+namespace Ui { class MainWindow; }
+QT_END_NAMESPACE
+
+using namespace std;
+
+class demodulation;
+//class Temp_distance_save;
+class udp_recv;
+class udp_send;
+class HEXtoDEC;
+
+class MainWindow : public QMainWindow
+{
+    Q_OBJECT
+
+public:
+    explicit MainWindow(QWidget *parent = nullptr);
+    ~MainWindow();
+
+    Ui::MainWindow *ui;
+    //    double* raw_data;
+    demodulation* m_demodulation;
+//    Temp_distance_save* m_temp_distance_save;
+    udp_recv* m_udp_recv;
+    udp_send* m_udp_send;
+    HEXtoDEC* m_hextodec;
+
+//    QString send_data;
+
+    QWebEngineView* m_temp_distance_widget;
+    QWebEngineView* m_max_temp_widget;
+
+    bool isStartRecv = false;
+
+    QTimer* Temp_Display_Timer;
+    QTimer* Temp_save_Timer;
+    QTimer* Alarm_Timer;
+
+    int flash_cnt = 0; //刷新次数计数
+
+    int alarm_count=0; //报警计时
+
+     int Temp_Max_1 = 0; //波长1最大温度值
+     int Temp_Max_2 = 0; //波长2最大温度值
+     int Temp_Max_3 = 0; //波长3最大温度值
+     int max_region = 1; //最大温度的区域
+
+     vector<int> v_his_temp1; //history temperature 1
+     vector<int> v_his_temp2; //history temperature 2
+     vector<int> v_his_temp3; //history temperature 3
+     vector<int> v_his_temp4; //history temperature 4
+     vector<int> v_his_temp5; //history temperature 5
+
+     vector<double> temp_rise_ratio1; //temperature rise ratio
+     vector<double> temp_rise_ratio2; //temperature rise ratio
+     vector<double> temp_rise_ratio3; //temperature rise ratio
+     vector<double> temp_rise_ratio4; //temperature rise ratio
+     vector<double> temp_rise_ratio5; //temperature rise ratio
+
+    QString APP_TITLE;
+//    QString BGD_IMAGE;
+    QString TEMP_DIST_HTML;
+    QString STYLE_SHEET;
+    int ALARM_TEMP_THRESHOLD;
+
+    int red_count = 0;
+    int red_flag = 0;
+    int reset_count = 0;
+    int reset_flag = 1;
+
+    void set_style_sheet();
+//    void set_background_image();
+    void read_config();
+    void init_widget_temp_distance();
+
+    //    void init_widget_max_temp();
+
+    void echarts_load_temp();
+
+    void start_alarm();
+    void start_detection();
+
+signals:
+    void sendToRaw_wave_widget(double* _senddata);
+
+
+private slots:
+    //    void on_btn_demodulation_clicked();
+
+    //    void on_btn_save_temp_clicked();
+
+    void FinishUdp_recvThread();
+    void FinishUdp_sendThread();
+    void FinishDemodulationThread();
+//    void FinishTemp_saveThread();
+
+    void onResizeEcharts5();
+
+    //    void on_btn_recv_clicked();
+
+    //    void on_m_send_clicked();
+
+    //    void on_btn_threshold_clicked();
+
+public slots:
+
+protected:
+    virtual void resizeEvent(QResizeEvent *event) override;
+
+private:
+    bool isLoaded5 = false;
+    bool isLoaded6 = false;
+
+};
+#endif // MAINWINDOW_H
+
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
+
+MainWindow::MainWindow(QWidget *parent):
+    QMainWindow(parent),
+    ui(new Ui::MainWindow),
+    //    raw_data(new double[1250100]),
+    m_demodulation(new demodulation(this)),
+//    m_temp_distance_save(new Temp_distance_save(m_demodulation)),
+    m_udp_recv(new udp_recv(this)),
+    m_udp_send(new udp_send(this))
+  //    m_hextodec(new HEXtoDEC(m_udp_recv))
+{
+    ui->setupUi(this);
+
+    read_config();
+
+    //    set_style_sheet();
+
+    //    set_background_image();
+
+    setWindowTitle(APP_TITLE);
+
+    init_widget_temp_distance();
+    //    init_widget_max_temp();
+
+    //定义定时器
+    Temp_Display_Timer = new QTimer(); // 温度-距离波形图显示计时器
+    Temp_Display_Timer->setTimerType(Qt::PreciseTimer);
+    Temp_save_Timer = new QTimer(); // 温度-距离波形图存储计时器
+    Temp_save_Timer->setTimerType(Qt::PreciseTimer);
+    Alarm_Timer = new QTimer();//温度过热报警计时器
+    Alarm_Timer->setTimerType(Qt::PreciseTimer);
+
+    //计时器定时响应
+    connect(Temp_Display_Timer,&QTimer::timeout,this,&MainWindow::echarts_load_temp);
+    //    connect(Temp_save_Timer,&QTimer::timeout,this,&MainWindow::Open_Temp_Save_Thread);
+    connect(Alarm_Timer,&QTimer::timeout,this,&MainWindow::start_alarm);
+    //线程结束时响应
+    connect(m_udp_recv,&udp_recv::finished,this,&MainWindow::FinishUdp_recvThread);
+    connect(m_udp_send,&udp_send::finished,this,&MainWindow::FinishUdp_sendThread);
+    connect(m_demodulation,&demodulation::finished,this,&MainWindow::FinishDemodulationThread);
+//    connect(m_temp_distance_save,&Temp_distance_save::finished,this,&MainWindow::FinishTemp_saveThread);
+
+    start_detection();
+
+    //    m_udp_send->start();
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+    flash_cnt = 0;
+}
+
+//void MainWindow::paintEvent(QPaintEvent *){
+//    label->resize(this->size());
+//}
+
+//读取配置文件
+void MainWindow::read_config()
+{
+    QSettings *settings = new QSettings("C:/Qt_UDP_DTS/config.ini",QSettings::IniFormat);
+
+    //Read
+    settings->beginGroup("MAIN");
+    int APP_TITLE = settings->value("APP_TITLE","").toInt();
+    qDebug()<<"APP_TITLE = "<<APP_TITLE<<endl;
+    settings->endGroup();
+
+    settings->beginGroup("RESOURCE");
+    //    BGD_IMAGE = settings->value("BGD_IMAGE","").toString();
+    //    qDebug()<<"BGD_IMAGE = "<<BGD_IMAGE<<endl;
+    TEMP_DIST_HTML = settings->value("TEMP_DIST_HTML","").toString();
+    qDebug()<<"TEMP_DIST_HTML = "<<TEMP_DIST_HTML<<endl;
+    STYLE_SHEET = settings->value("STYLE_SHEET","").toString();
+    qDebug()<<"STYLE_SHEET = "<<STYLE_SHEET<<endl;
+    settings->endGroup();
+
+    settings->beginGroup("DETECTION");
+    int ALM_TEMP_THR = settings->value("ALM_TEMP_THR",-1).toInt();
+    qDebug()<<"ALM_TEMP_THR = "<<ALM_TEMP_THR<<endl;
+    settings->endGroup();
+
+}
+
+//设置qt样式表
+void MainWindow::set_style_sheet()
+{
+    qDebug()<<QDir::currentPath()<<endl;
+    QFile file(STYLE_SHEET);
+    file.open(QFile::ReadOnly);
+    QString styleSheet = tr(file.readAll());
+    qApp->setStyleSheet(styleSheet);
+}
+
+//设置背景图
+//void MainWindow::set_background_image()
+//{
+//    QPixmap Images(BGD_IMAGE);
+//    label = new QLabel(this);
+//    label->setScaledContents(true);
+//    label->setPixmap(Images);
+//    label->lower();
+//}
+
+
+//初始化html
+void MainWindow::init_widget_temp_distance()
+{
+    /*--关联WebEngineView与html文件--*/
+    m_temp_distance_widget = ui->temp_distance_widget;
+    m_temp_distance_widget->setContextMenuPolicy(Qt::NoContextMenu);
+    m_temp_distance_widget->load(QUrl::fromLocalFile(/*QDir::currentPath()+*/TEMP_DIST_HTML));
+
+    //QWebEngineView 在 load 完一个页面后会发出一个已完成的信号,依据 QWebEngineView 的大小来设置 EChart 的大小的
+    connect(m_temp_distance_widget,&QWebEngineView::loadFinished,this,&MainWindow::onResizeEcharts5);
+}
+
+
+//echarts加载数据 1s刷新一次
+/**
+ * JSON传数据步骤
+ * 1.使用 QJonsObject 来组成一个 JSON 对象
+ * 2.使用 QJsonArray 往 JSON 对象中添加一数组
+ * 3.使用 QJsonDocument 来将 JSON 对象转化成字符串
+ * 4.调用js的function()方法
+ * 5.调用 QWebEngineView的 page()->runJavaScript("function(str)") 来运行 JS 方法
+*/
+void MainWindow::echarts_load_temp()
+{
+        /*------传递波长1的距离-温度曲线--------*/
+        QJsonObject dis_temp_obj;
+        QJsonArray dis_temp_json1;
+
+        for(int i=0; i<DISNUM; ++i) {
+            //如果中心波长的温度值是0 则不画出该点
+    //        if(m_demodulation->Temp[i]==0) continue;
+
+            //如果温度值太小，则不画出该点
+//            if(m_demodulation->Temp[i]<30) continue;
+
+             //如果温度值太大，则不画出该点
+//            if(m_demodulation->Temp[i]>250) continue;
+
+            dis_temp_json1.push_back(m_demodulation->Temp_1[i]);
+        }
+        dis_temp_obj.insert("dis_temp_1", dis_temp_json1);
+
+
+
+
+        /*------传递波长2的距离-温度曲线--------*/
+        QJsonObject dis_temp_obj2;
+        QJsonArray dis_temp_json2;
+
+        for(int i=0; i<DISNUM; ++i) {
+            dis_temp_json2.push_back(m_demodulation->Temp_2[i]);
+        }
+        dis_temp_obj.insert("dis_temp_2", dis_temp_json2);
+
+
+
+        /*------传递波长3的距离-温度曲线--------*/
+        QJsonObject dis_temp_obj3;
+        QJsonArray dis_temp_json3;
+
+        for(int i=0; i<DISNUM; ++i) {
+            dis_temp_json3.push_back(m_demodulation->Temp_3[i]);
+        }
+        dis_temp_obj.insert("dis_temp_3", dis_temp_json3);
+
+
+        /*------传递波长4的距离-温度曲线--------*/
+        QJsonObject dis_temp_obj4;
+        QJsonArray dis_temp_json4;
+
+        for(int i=0; i<DISNUM; ++i) {
+            dis_temp_json4.push_back(m_demodulation->Temp_4[i]);
+        }
+        dis_temp_obj.insert("dis_temp_4", dis_temp_json4);
+
+
+        /*------传递波长5的距离-温度曲线--------*/
+        QJsonObject dis_temp_obj5;
+        QJsonArray dis_temp_json5;
+
+        for(int i=0; i<DISNUM; ++i) {
+            dis_temp_json5.push_back(m_demodulation->Temp_5[i]);
+        }
+        dis_temp_obj.insert("dis_temp_5", dis_temp_json5);
+
+        QString dis_temp_str = QJsonDocument(dis_temp_obj).toJson();
+
+        QString dis_temp_js = QString("dis_temp_curve(%1)").arg(dis_temp_str);
+
+        m_temp_distance_widget->page()->runJavaScript(dis_temp_js);
+
+
+    //get the temperatures of detection positions
+    int Wav1_Temp_1,Wav1_Temp_2,Wav1_Temp_3,Wav1_Temp_4,Wav1_Temp_5;
+    Wav1_Temp_1 = m_demodulation->Temp_1[23];
+    Wav1_Temp_2 = m_demodulation->Temp_2[23];
+//    qDebug()<<"Wav1_Temp_2:" <<Wav1_Temp_2<<endl;
+    Wav1_Temp_3 = m_demodulation->Temp_3[23];
+    Wav1_Temp_4 = m_demodulation->Temp_4[23];
+    Wav1_Temp_5 = m_demodulation->Temp_5[23];
+
+    //save history temperature
+    v_his_temp1.push_back(Wav1_Temp_1);
+    v_his_temp2.push_back(Wav1_Temp_2);
+    v_his_temp3.push_back(Wav1_Temp_3);
+    v_his_temp4.push_back(Wav1_Temp_4);
+    v_his_temp5.push_back(Wav1_Temp_5);
+
+    double r1,r2,r3,r4,r5;
+
+    int temp_cnt = flash_cnt-10; //10s时间段的温升率
+    if(temp_cnt>=0){
+        r1 = 1.0*((Wav1_Temp_1-v_his_temp1[temp_cnt])/10);
+        r2 = 1.0*(Wav1_Temp_2-v_his_temp2[temp_cnt])/10;
+        r3 = 1.0*(Wav1_Temp_3-v_his_temp3[temp_cnt])/10;
+        r4 = 1.0*(Wav1_Temp_4-v_his_temp4[temp_cnt])/10;
+        r5 = 1.0*(Wav1_Temp_5-v_his_temp5[temp_cnt])/10;
+    }
+    else {
+        r1=0,r2=0,r3=0,r4=0,r5=0;
+    }
+
+//    qDebug()<<"r2 = "<<r2<<endl;
+
+    //save temp rise ratio
+    temp_rise_ratio1.push_back(r1);
+    temp_rise_ratio2.push_back(r2);
+    temp_rise_ratio3.push_back(r3);
+    temp_rise_ratio4.push_back(r4);
+    temp_rise_ratio5.push_back(r5);
+
+     /*--------传递Temp_Ratio-------*/
+    QJsonObject template_temp_obj;
+    QJsonArray ratio_json1, ratio_json2, ratio_json3, ratio_json4, ratio_json5;
+
+    ratio_json1.push_back(r1);
+    ratio_json2.push_back(r2);
+    ratio_json3.push_back(r3);
+    ratio_json4.push_back(r4);
+    ratio_json5.push_back(r5);
+
+    template_temp_obj.insert("temp_ratio1", ratio_json1);
+    template_temp_obj.insert("temp_ratio2", ratio_json2);
+    template_temp_obj.insert("temp_ratio3", ratio_json3);
+    template_temp_obj.insert("temp_ratio4", ratio_json4);
+    template_temp_obj.insert("temp_ratio5", ratio_json5);
+
+//    //get the max of Temp, the region of the max Temp
+//    Temp_Max= Temp_1;
+
+    vector<int>Wav1_Temp_v{Wav1_Temp_1,Wav1_Temp_2,Wav1_Temp_3,Wav1_Temp_4,Wav1_Temp_5};
+//    for(int m=0;m<5;++m){
+//        if(Temp_v[m]>Temp_Max){
+//            Temp_Max = Temp_v[m];
+//            max_region = m+1;
+//        }
+//    }
+
+    //get the demo MAX_Temp of wavelength1
+    Temp_Max_1 = m_demodulation->MAX_Temp_1;
+
+    //region detection by the difference of Temp and MAX_Temp
+    vector<int> diff_Temp;
+    for(int p=0;p<5;++p){
+        diff_Temp.push_back(abs(Temp_Max_1-Wav1_Temp_v[p]));
+    }
+
+    max_region = min_element(diff_Temp.begin(),diff_Temp.end())-diff_Temp.begin() + 1;
+
+    /*--------传递MAX_Temp-------*/
+    QJsonObject temp_Obj; //存放“temperature”"region"两个键
+    QJsonArray temp_json;
+
+    temp_json.push_back(Temp_Max_1);
+
+    temp_Obj.insert("temperature", temp_json);
+
+    /*-------传递template_temp温度建模-------*/
+
+    QJsonArray template_temp_json1, template_temp_json2, template_temp_json3,
+            template_temp_json4, template_temp_json5;
+
+
+    template_temp_json1.push_back(Wav1_Temp_1);
+    template_temp_json2.push_back(Wav1_Temp_2);
+    template_temp_json3.push_back(Wav1_Temp_3);
+    template_temp_json4.push_back(Wav1_Temp_4);
+    template_temp_json5.push_back(Wav1_Temp_5);
+
+    template_temp_obj.insert("template_temp1", template_temp_json1);
+    template_temp_obj.insert("template_temp2", template_temp_json2);
+    template_temp_obj.insert("template_temp3", template_temp_json3);
+    template_temp_obj.insert("template_temp4", template_temp_json4);
+    template_temp_obj.insert("template_temp5", template_temp_json5);
+
+    QString optionStr3 = QJsonDocument(template_temp_obj).toJson();
+
+    QString js3 = QString("template(%1)").arg(optionStr3);
+
+    m_temp_distance_widget->page()->runJavaScript(js3);
+
+    /*-------传递MAX_Region-------*/
+    QJsonArray region_json;
+
+    region_json.push_back(max_region);
+
+    temp_Obj.insert("region", region_json);
+
+    QString optionStr2 = QJsonDocument(temp_Obj).toJson();
+
+    QString js2 = QString("highTemp(%1)").arg(optionStr2);
+
+    m_temp_distance_widget->page()->runJavaScript(js2);
+
+    ++flash_cnt;
+}
+
+
+//过热报警功能
+void MainWindow::start_alarm()
+{
+    /*------告警：消警状态下，若温度高于154°开始计数，若3s后，温度仍大于，则开始报警------*/
+
+    if(reset_flag==1 /*&& red_flag==0*/ && /*m_demodulation->MAX_Temp*/Temp_Max_1>=154){
+        ++red_count;
+
+        if(red_count>=3){
+            red_flag = 1;
+            reset_flag = 0;
+        }
+    }
+
+    /*-------------消警：报警状态下，若温度小于85°开始计数，若3秒后，温度仍小于，则消警----------------*/
+
+    else if(red_flag==1 /*&& reset_flag==0*/ && /*m_demodulation->MAX_Temp*/Temp_Max_1<85){
+
+        ++reset_count;
+
+        if(reset_count>=3){
+            reset_flag = 1;
+            red_flag = 0;
+        }
+    }
+
+    /*-------------其他：清零报警和消警计数器----------------*/
+    else{
+        red_count = 0;
+        reset_count = 0;
+    }
+
+    /*--------传递flag-------*/
+    QJsonObject flag_Obj;
+    QJsonArray flag_json1,flag_json2;
+
+    //    red_flag = 1;
+    //    reset_flag = 0;
+    flag_json1.push_back(red_flag);
+    flag_json2.push_back(reset_flag);
+
+    flag_Obj.insert("red_flag", flag_json1);
+    flag_Obj.insert("reset_flag", flag_json2);
+
+
+    QString optionStr2 = QJsonDocument(flag_Obj).toJson();
+
+    QString js_alarm = QString("baojing(%1)").arg(optionStr2);
+
+    m_temp_distance_widget->page()->runJavaScript(js_alarm);
+}
+
+//开始接收数据并检测
+void MainWindow::start_detection()
+{
+    //开始接收数据线程
+    m_udp_recv->start();
+
+    //开始解调数据线程
+    m_demodulation->start();
+
+    //定时器控制echarts_load_temp()显示 ms
+    if(!Temp_Display_Timer->isActive()) Temp_Display_Timer->start(1000);
+
+    //定时器控制start_alarm()显示 ms
+    if(!Alarm_Timer->isActive()) Alarm_Timer->start(1000);
+}
+
+
+void MainWindow::FinishUdp_recvThread()
+{
+    m_udp_recv->quit();
+    m_udp_recv->wait();
+}
+
+void MainWindow::FinishUdp_sendThread()
+{
+    m_udp_send->quit();
+    m_udp_send->wait();
+}
+
+
+void MainWindow::FinishDemodulationThread()
+{
+    m_demodulation->quit();
+    m_demodulation->wait();
+}
+
+//void MainWindow::FinishTemp_saveThread()
+//{
+//    m_temp_distance_save->quit();
+//    m_temp_distance_save->wait();
+//}
+
+//自适应窗口变化
+void MainWindow::onResizeEcharts5()
+{
+    isLoaded5 = true;
+    QJsonObject sizeData;
+    sizeData.insert("width", m_temp_distance_widget->width() - 20);
+    sizeData.insert("height", m_temp_distance_widget->height() - 20);
+    QString sizeStr = QJsonDocument(sizeData).toJson();
+    QString js = QString("setSize(%1)").arg(sizeStr);
+    m_temp_distance_widget->page()->runJavaScript(js);
+}
+
+
+//因为我们实现在窗口改变大小时 ECharts 也跟着变化，所以我们要在 resizeEvent 时设置也要设置大小
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+    if(isLoaded5) onResizeEcharts5();
+
+}
+
+//点击设定最大值法寻峰阈值
+//void MainWindow::on_btn_threshold_clicked()
+//{
+//    m_demodulation->threshold = ui->edit_threshold->text().toInt();
+
+//    QMessageBox::about(this,tr("Attention"),tr("Threshold Set Succeeded!"));
+//}
+
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1124</width>
+    <height>531</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="0" column="0">
+     <widget class="QWebEngineView" name="temp_distance_widget">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>13</pointsize>
+       </font>
+      </property>
+      <property name="layoutDirection">
+       <enum>Qt::LeftToRight</enum>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QWebEngineView</class>
+   <extends>QGraphicsView</extends>
+   <header location="global">qwebengineview.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>
+
+#include "demodulation.h"
+
+
+
+demodulation::demodulation(MainWindow* _mainWindow):
+    m_mainwindow(_mainWindow),
+    all_wavelength_data(new int*[WAVNUM]),
+//    MAX_Temp(0),
+    threshold(1500)
+{
+    read_config();
+
+    all_wavelength_data[0]=single_wave_data_1;
+    all_wavelength_data[1]=single_wave_data_2;
+    all_wavelength_data[2]=single_wave_data_3;
+    all_wavelength_data[3]=single_wave_data_4;
+    all_wavelength_data[4]=single_wave_data_5;
+    all_wavelength_data[5]=single_wave_data_6;
+    all_wavelength_data[6]=single_wave_data_7;
+    all_wavelength_data[7]=single_wave_data_8;
+    all_wavelength_data[8]=single_wave_data_9;
+    all_wavelength_data[9]=single_wave_data_10;
+    all_wavelength_data[10]=single_wave_data_11;
+    all_wavelength_data[11]=single_wave_data_12;
+    all_wavelength_data[12]=single_wave_data_13;
+    all_wavelength_data[13]=single_wave_data_14;
+    all_wavelength_data[14]=single_wave_data_15;
+    all_wavelength_data[15]=single_wave_data_16;
+    all_wavelength_data[16]=single_wave_data_17;
+    all_wavelength_data[17]=single_wave_data_18;
+    all_wavelength_data[18]=single_wave_data_19;
+    all_wavelength_data[19]=single_wave_data_20;
+    all_wavelength_data[20]=single_wave_data_21;
+    all_wavelength_data[21]=single_wave_data_22;
+    all_wavelength_data[22]=single_wave_data_23;
+    all_wavelength_data[23]=single_wave_data_24;
+    all_wavelength_data[24]=single_wave_data_25;
+    all_wavelength_data[25]=single_wave_data_26;
+    all_wavelength_data[26]=single_wave_data_27;
+    all_wavelength_data[27]=single_wave_data_28;
+    all_wavelength_data[28]=single_wave_data_29;
+    all_wavelength_data[29]=single_wave_data_30;
+    all_wavelength_data[30]=single_wave_data_31;
+    all_wavelength_data[31]=single_wave_data_32;
+//    all_wavelength_data[32]=single_wave_data_33;
+//    all_wavelength_data[33]=single_wave_data_34;
+//    all_wavelength_data[34]=single_wave_data_35;
+//    all_wavelength_data[35]=single_wave_data_36;
+//    all_wavelength_data[36]=single_wave_data_37;
+//    all_wavelength_data[37]=single_wave_data_38;
+//    all_wavelength_data[38]=single_wave_data_39;
+//    all_wavelength_data[39]=single_wave_data_40;
+//    all_wavelength_data[40]=single_wave_data_41;
+//    all_wavelength_data[41]=single_wave_data_42;
+//    all_wavelength_data[42]=single_wave_data_43;
+//    all_wavelength_data[43]=single_wave_data_44;
+//    all_wavelength_data[44]=single_wave_data_45;
+//    all_wavelength_data[45]=single_wave_data_46;
+//    all_wavelength_data[46]=single_wave_data_47;
+//    all_wavelength_data[47]=single_wave_data_48;
+//    all_wavelength_data[48]=single_wave_data_49;
+//    all_wavelength_data[49]=single_wave_data_50;
+//    all_wavelength_data[50]=single_wave_data_51;
+//    all_wavelength_data[51]=single_wave_data_52;
+//    all_wavelength_data[52]=single_wave_data_53;
+//    all_wavelength_data[53]=single_wave_data_54;
+//    all_wavelength_data[54]=single_wave_data_55;
+//    all_wavelength_data[55]=single_wave_data_56;
+//    all_wavelength_data[56]=single_wave_data_57;
+//    all_wavelength_data[57]=single_wave_data_58;
+//    all_wavelength_data[58]=single_wave_data_59;
+//    all_wavelength_data[59]=single_wave_data_60;
+//    all_wavelength_data[60]=single_wave_data_61;
+//    all_wavelength_data[61]=single_wave_data_62;
+//    all_wavelength_data[62]=single_wave_data_63;
+//    all_wavelength_data[63]=single_wave_data_64;
+
+    wav1_dis1_data.resize(WAVLENNUM); //波长1距离1 初始化为WAVLENNUM个0 下同
+    wav1_dis2_data.resize(WAVLENNUM);
+    wav1_dis3_data.resize(WAVLENNUM);
+    wav1_dis4_data.resize(WAVLENNUM);
+    wav1_dis5_data.resize(WAVLENNUM);
+    wav1_dis6_data.resize(WAVLENNUM);
+    wav1_dis7_data.resize(WAVLENNUM);
+    wav1_dis8_data.resize(WAVLENNUM);
+    wav1_dis9_data.resize(WAVLENNUM);
+    wav1_dis10_data.resize(WAVLENNUM);
+    wav1_dis11_data.resize(WAVLENNUM);
+    wav1_dis12_data.resize(WAVLENNUM);
+    wav1_dis13_data.resize(WAVLENNUM);
+    wav1_dis14_data.resize(WAVLENNUM);
+    wav1_dis15_data.resize(WAVLENNUM);
+    wav1_dis16_data.resize(WAVLENNUM);
+    wav1_dis17_data.resize(WAVLENNUM);
+    wav1_dis18_data.resize(WAVLENNUM);
+    wav1_dis19_data.resize(WAVLENNUM);
+    wav1_dis20_data.resize(WAVLENNUM);
+    wav1_dis21_data.resize(WAVLENNUM);
+    wav1_dis22_data.resize(WAVLENNUM);
+    wav1_dis23_data.resize(WAVLENNUM);
+    wav1_dis24_data.resize(WAVLENNUM);
+    wav1_dis25_data.resize(WAVLENNUM);
+    wav1_dis26_data.resize(WAVLENNUM);
+    wav1_dis27_data.resize(WAVLENNUM);
+    wav1_dis28_data.resize(WAVLENNUM);
+    wav1_dis29_data.resize(WAVLENNUM);
+    wav1_dis30_data.resize(WAVLENNUM);
+    wav1_dis31_data.resize(WAVLENNUM);
+    wav1_dis32_data.resize(WAVLENNUM);
+
+    wav2_dis1_data.resize(WAVLENNUM); //波长2距离1
+    wav2_dis2_data.resize(WAVLENNUM);
+    wav2_dis3_data.resize(WAVLENNUM);
+    wav2_dis4_data.resize(WAVLENNUM);
+    wav2_dis5_data.resize(WAVLENNUM);
+    wav2_dis6_data.resize(WAVLENNUM);
+    wav2_dis7_data.resize(WAVLENNUM);
+    wav2_dis8_data.resize(WAVLENNUM);
+    wav2_dis9_data.resize(WAVLENNUM);
+    wav2_dis10_data.resize(WAVLENNUM);
+    wav2_dis11_data.resize(WAVLENNUM);
+    wav2_dis12_data.resize(WAVLENNUM);
+    wav2_dis13_data.resize(WAVLENNUM);
+    wav2_dis14_data.resize(WAVLENNUM);
+    wav2_dis15_data.resize(WAVLENNUM);
+    wav2_dis16_data.resize(WAVLENNUM);
+    wav2_dis17_data.resize(WAVLENNUM);
+    wav2_dis18_data.resize(WAVLENNUM);
+    wav2_dis19_data.resize(WAVLENNUM);
+    wav2_dis20_data.resize(WAVLENNUM);
+    wav2_dis21_data.resize(WAVLENNUM);
+    wav2_dis22_data.resize(WAVLENNUM);
+    wav2_dis23_data.resize(WAVLENNUM);
+    wav2_dis24_data.resize(WAVLENNUM);
+    wav2_dis25_data.resize(WAVLENNUM);
+    wav2_dis26_data.resize(WAVLENNUM);
+    wav2_dis27_data.resize(WAVLENNUM);
+    wav2_dis28_data.resize(WAVLENNUM);
+    wav2_dis29_data.resize(WAVLENNUM);
+    wav2_dis30_data.resize(WAVLENNUM);
+    wav2_dis31_data.resize(WAVLENNUM);
+    wav2_dis32_data.resize(WAVLENNUM);
+
+    wav3_dis1_data.resize(WAVLENNUM); //波长3距离1
+    wav3_dis2_data.resize(WAVLENNUM);
+    wav3_dis3_data.resize(WAVLENNUM);
+    wav3_dis4_data.resize(WAVLENNUM);
+    wav3_dis5_data.resize(WAVLENNUM);
+    wav3_dis6_data.resize(WAVLENNUM);
+    wav3_dis7_data.resize(WAVLENNUM);
+    wav3_dis8_data.resize(WAVLENNUM);
+    wav3_dis9_data.resize(WAVLENNUM);
+    wav3_dis10_data.resize(WAVLENNUM);
+    wav3_dis11_data.resize(WAVLENNUM);
+    wav3_dis12_data.resize(WAVLENNUM);
+    wav3_dis13_data.resize(WAVLENNUM);
+    wav3_dis14_data.resize(WAVLENNUM);
+    wav3_dis15_data.resize(WAVLENNUM);
+    wav3_dis16_data.resize(WAVLENNUM);
+    wav3_dis17_data.resize(WAVLENNUM);
+    wav3_dis18_data.resize(WAVLENNUM);
+    wav3_dis19_data.resize(WAVLENNUM);
+    wav3_dis20_data.resize(WAVLENNUM);
+    wav3_dis21_data.resize(WAVLENNUM);
+    wav3_dis22_data.resize(WAVLENNUM);
+    wav3_dis23_data.resize(WAVLENNUM);
+    wav3_dis24_data.resize(WAVLENNUM);
+    wav3_dis25_data.resize(WAVLENNUM);
+    wav3_dis26_data.resize(WAVLENNUM);
+    wav3_dis27_data.resize(WAVLENNUM);
+    wav3_dis28_data.resize(WAVLENNUM);
+    wav3_dis29_data.resize(WAVLENNUM);
+    wav3_dis30_data.resize(WAVLENNUM);
+    wav3_dis31_data.resize(WAVLENNUM);
+    wav3_dis32_data.resize(WAVLENNUM);
+
+    wav4_dis1_data.resize(WAVLENNUM); //波长4距离1
+    wav4_dis2_data.resize(WAVLENNUM);
+    wav4_dis3_data.resize(WAVLENNUM);
+    wav4_dis4_data.resize(WAVLENNUM);
+    wav4_dis5_data.resize(WAVLENNUM);
+    wav4_dis6_data.resize(WAVLENNUM);
+    wav4_dis7_data.resize(WAVLENNUM);
+    wav4_dis8_data.resize(WAVLENNUM);
+    wav4_dis9_data.resize(WAVLENNUM);
+    wav4_dis10_data.resize(WAVLENNUM);
+    wav4_dis11_data.resize(WAVLENNUM);
+    wav4_dis12_data.resize(WAVLENNUM);
+    wav4_dis13_data.resize(WAVLENNUM);
+    wav4_dis14_data.resize(WAVLENNUM);
+    wav4_dis15_data.resize(WAVLENNUM);
+    wav4_dis16_data.resize(WAVLENNUM);
+    wav4_dis17_data.resize(WAVLENNUM);
+    wav4_dis18_data.resize(WAVLENNUM);
+    wav4_dis19_data.resize(WAVLENNUM);
+    wav4_dis20_data.resize(WAVLENNUM);
+    wav4_dis21_data.resize(WAVLENNUM);
+    wav4_dis22_data.resize(WAVLENNUM);
+    wav4_dis23_data.resize(WAVLENNUM);
+    wav4_dis24_data.resize(WAVLENNUM);
+    wav4_dis25_data.resize(WAVLENNUM);
+    wav4_dis26_data.resize(WAVLENNUM);
+    wav4_dis27_data.resize(WAVLENNUM);
+    wav4_dis28_data.resize(WAVLENNUM);
+    wav4_dis29_data.resize(WAVLENNUM);
+    wav4_dis30_data.resize(WAVLENNUM);
+    wav4_dis31_data.resize(WAVLENNUM);
+    wav4_dis32_data.resize(WAVLENNUM);
+
+    wav5_dis1_data.resize(WAVLENNUM); //波长5距离1
+    wav5_dis2_data.resize(WAVLENNUM);
+    wav5_dis3_data.resize(WAVLENNUM);
+    wav5_dis4_data.resize(WAVLENNUM);
+    wav5_dis5_data.resize(WAVLENNUM);
+    wav5_dis6_data.resize(WAVLENNUM);
+    wav5_dis7_data.resize(WAVLENNUM);
+    wav5_dis8_data.resize(WAVLENNUM);
+    wav5_dis9_data.resize(WAVLENNUM);
+    wav5_dis10_data.resize(WAVLENNUM);
+    wav5_dis11_data.resize(WAVLENNUM);
+    wav5_dis12_data.resize(WAVLENNUM);
+    wav5_dis13_data.resize(WAVLENNUM);
+    wav5_dis14_data.resize(WAVLENNUM);
+    wav5_dis15_data.resize(WAVLENNUM);
+    wav5_dis16_data.resize(WAVLENNUM);
+    wav5_dis17_data.resize(WAVLENNUM);
+    wav5_dis18_data.resize(WAVLENNUM);
+    wav5_dis19_data.resize(WAVLENNUM);
+    wav5_dis20_data.resize(WAVLENNUM);
+    wav5_dis21_data.resize(WAVLENNUM);
+    wav5_dis22_data.resize(WAVLENNUM);
+    wav5_dis23_data.resize(WAVLENNUM);
+    wav5_dis24_data.resize(WAVLENNUM);
+    wav5_dis25_data.resize(WAVLENNUM);
+    wav5_dis26_data.resize(WAVLENNUM);
+    wav5_dis27_data.resize(WAVLENNUM);
+    wav5_dis28_data.resize(WAVLENNUM);
+    wav5_dis29_data.resize(WAVLENNUM);
+    wav5_dis30_data.resize(WAVLENNUM);
+    wav5_dis31_data.resize(WAVLENNUM);
+    wav5_dis32_data.resize(WAVLENNUM);
+
+    wavelen1_data.push_back(wav1_dis1_data);
+    wavelen1_data.push_back(wav1_dis2_data);
+    wavelen1_data.push_back(wav1_dis3_data);
+    wavelen1_data.push_back(wav1_dis4_data);
+    wavelen1_data.push_back(wav1_dis5_data);
+    wavelen1_data.push_back(wav1_dis6_data);
+    wavelen1_data.push_back(wav1_dis7_data);
+    wavelen1_data.push_back(wav1_dis8_data);
+    wavelen1_data.push_back(wav1_dis9_data);
+    wavelen1_data.push_back(wav1_dis10_data);
+    wavelen1_data.push_back(wav1_dis11_data);
+    wavelen1_data.push_back(wav1_dis12_data);
+    wavelen1_data.push_back(wav1_dis13_data);
+    wavelen1_data.push_back(wav1_dis14_data);
+    wavelen1_data.push_back(wav1_dis15_data);
+    wavelen1_data.push_back(wav1_dis16_data);
+    wavelen1_data.push_back(wav1_dis17_data);
+    wavelen1_data.push_back(wav1_dis18_data);
+    wavelen1_data.push_back(wav1_dis19_data);
+    wavelen1_data.push_back(wav1_dis20_data);
+    wavelen1_data.push_back(wav1_dis21_data);
+    wavelen1_data.push_back(wav1_dis22_data);
+    wavelen1_data.push_back(wav1_dis23_data);
+    wavelen1_data.push_back(wav1_dis24_data);
+    wavelen1_data.push_back(wav1_dis25_data);
+    wavelen1_data.push_back(wav1_dis26_data);
+    wavelen1_data.push_back(wav1_dis27_data);
+    wavelen1_data.push_back(wav1_dis28_data);
+    wavelen1_data.push_back(wav1_dis29_data);
+    wavelen1_data.push_back(wav1_dis30_data);
+    wavelen1_data.push_back(wav1_dis31_data);
+    wavelen1_data.push_back(wav1_dis32_data);
+
+    wavelen2_data.push_back(wav2_dis1_data);
+    wavelen2_data.push_back(wav2_dis2_data);
+    wavelen2_data.push_back(wav2_dis3_data);
+    wavelen2_data.push_back(wav2_dis4_data);
+    wavelen2_data.push_back(wav2_dis5_data);
+    wavelen2_data.push_back(wav2_dis6_data);
+    wavelen2_data.push_back(wav2_dis7_data);
+    wavelen2_data.push_back(wav2_dis8_data);
+    wavelen2_data.push_back(wav2_dis9_data);
+    wavelen2_data.push_back(wav2_dis10_data);
+    wavelen2_data.push_back(wav2_dis11_data);
+    wavelen2_data.push_back(wav2_dis12_data);
+    wavelen2_data.push_back(wav2_dis13_data);
+    wavelen2_data.push_back(wav2_dis14_data);
+    wavelen2_data.push_back(wav2_dis15_data);
+    wavelen2_data.push_back(wav2_dis16_data);
+    wavelen2_data.push_back(wav2_dis17_data);
+    wavelen2_data.push_back(wav2_dis18_data);
+    wavelen2_data.push_back(wav2_dis19_data);
+    wavelen2_data.push_back(wav2_dis20_data);
+    wavelen2_data.push_back(wav2_dis21_data);
+    wavelen2_data.push_back(wav2_dis22_data);
+    wavelen2_data.push_back(wav2_dis23_data);
+    wavelen2_data.push_back(wav2_dis24_data);
+    wavelen2_data.push_back(wav2_dis25_data);
+    wavelen2_data.push_back(wav2_dis26_data);
+    wavelen2_data.push_back(wav2_dis27_data);
+    wavelen2_data.push_back(wav2_dis28_data);
+    wavelen2_data.push_back(wav2_dis29_data);
+    wavelen2_data.push_back(wav2_dis30_data);
+    wavelen2_data.push_back(wav2_dis31_data);
+    wavelen2_data.push_back(wav2_dis32_data);
+
+    wavelen3_data.push_back(wav3_dis1_data);
+    wavelen3_data.push_back(wav3_dis2_data);
+    wavelen3_data.push_back(wav3_dis3_data);
+    wavelen3_data.push_back(wav3_dis4_data);
+    wavelen3_data.push_back(wav3_dis5_data);
+    wavelen3_data.push_back(wav3_dis6_data);
+    wavelen3_data.push_back(wav3_dis7_data);
+    wavelen3_data.push_back(wav3_dis8_data);
+    wavelen3_data.push_back(wav3_dis9_data);
+    wavelen3_data.push_back(wav3_dis10_data);
+    wavelen3_data.push_back(wav3_dis11_data);
+    wavelen3_data.push_back(wav3_dis12_data);
+    wavelen3_data.push_back(wav3_dis13_data);
+    wavelen3_data.push_back(wav3_dis14_data);
+    wavelen3_data.push_back(wav3_dis15_data);
+    wavelen3_data.push_back(wav3_dis16_data);
+    wavelen3_data.push_back(wav3_dis17_data);
+    wavelen3_data.push_back(wav3_dis18_data);
+    wavelen3_data.push_back(wav3_dis19_data);
+    wavelen3_data.push_back(wav3_dis20_data);
+    wavelen3_data.push_back(wav3_dis21_data);
+    wavelen3_data.push_back(wav3_dis22_data);
+    wavelen3_data.push_back(wav3_dis23_data);
+    wavelen3_data.push_back(wav3_dis24_data);
+    wavelen3_data.push_back(wav3_dis25_data);
+    wavelen3_data.push_back(wav3_dis26_data);
+    wavelen3_data.push_back(wav3_dis27_data);
+    wavelen3_data.push_back(wav3_dis28_data);
+    wavelen3_data.push_back(wav3_dis29_data);
+    wavelen3_data.push_back(wav3_dis30_data);
+    wavelen3_data.push_back(wav3_dis31_data);
+    wavelen3_data.push_back(wav3_dis32_data);
+
+    wavelen4_data.push_back(wav4_dis1_data);
+    wavelen4_data.push_back(wav4_dis2_data);
+    wavelen4_data.push_back(wav4_dis3_data);
+    wavelen4_data.push_back(wav4_dis4_data);
+    wavelen4_data.push_back(wav4_dis5_data);
+    wavelen4_data.push_back(wav4_dis6_data);
+    wavelen4_data.push_back(wav4_dis7_data);
+    wavelen4_data.push_back(wav4_dis8_data);
+    wavelen4_data.push_back(wav4_dis9_data);
+    wavelen4_data.push_back(wav4_dis10_data);
+    wavelen4_data.push_back(wav4_dis11_data);
+    wavelen4_data.push_back(wav4_dis12_data);
+    wavelen4_data.push_back(wav4_dis13_data);
+    wavelen4_data.push_back(wav4_dis14_data);
+    wavelen4_data.push_back(wav4_dis15_data);
+    wavelen4_data.push_back(wav4_dis16_data);
+    wavelen4_data.push_back(wav4_dis17_data);
+    wavelen4_data.push_back(wav4_dis18_data);
+    wavelen4_data.push_back(wav4_dis19_data);
+    wavelen4_data.push_back(wav4_dis20_data);
+    wavelen4_data.push_back(wav4_dis21_data);
+    wavelen4_data.push_back(wav4_dis22_data);
+    wavelen4_data.push_back(wav4_dis23_data);
+    wavelen4_data.push_back(wav4_dis24_data);
+    wavelen4_data.push_back(wav4_dis25_data);
+    wavelen4_data.push_back(wav4_dis26_data);
+    wavelen4_data.push_back(wav4_dis27_data);
+    wavelen4_data.push_back(wav4_dis28_data);
+    wavelen4_data.push_back(wav4_dis29_data);
+    wavelen4_data.push_back(wav4_dis30_data);
+    wavelen4_data.push_back(wav4_dis31_data);
+    wavelen4_data.push_back(wav4_dis32_data);
+
+    wavelen5_data.push_back(wav5_dis1_data);
+    wavelen5_data.push_back(wav5_dis2_data);
+    wavelen5_data.push_back(wav5_dis3_data);
+    wavelen5_data.push_back(wav5_dis4_data);
+    wavelen5_data.push_back(wav5_dis5_data);
+    wavelen5_data.push_back(wav5_dis6_data);
+    wavelen5_data.push_back(wav5_dis7_data);
+    wavelen5_data.push_back(wav5_dis8_data);
+    wavelen5_data.push_back(wav5_dis9_data);
+    wavelen5_data.push_back(wav5_dis10_data);
+    wavelen5_data.push_back(wav5_dis11_data);
+    wavelen5_data.push_back(wav5_dis12_data);
+    wavelen5_data.push_back(wav5_dis13_data);
+    wavelen5_data.push_back(wav5_dis14_data);
+    wavelen5_data.push_back(wav5_dis15_data);
+    wavelen5_data.push_back(wav5_dis16_data);
+    wavelen5_data.push_back(wav5_dis17_data);
+    wavelen5_data.push_back(wav5_dis18_data);
+    wavelen5_data.push_back(wav5_dis19_data);
+    wavelen5_data.push_back(wav5_dis20_data);
+    wavelen5_data.push_back(wav5_dis21_data);
+    wavelen5_data.push_back(wav5_dis22_data);
+    wavelen5_data.push_back(wav5_dis23_data);
+    wavelen5_data.push_back(wav5_dis24_data);
+    wavelen5_data.push_back(wav5_dis25_data);
+    wavelen5_data.push_back(wav5_dis26_data);
+    wavelen5_data.push_back(wav5_dis27_data);
+    wavelen5_data.push_back(wav5_dis28_data);
+    wavelen5_data.push_back(wav5_dis29_data);
+    wavelen5_data.push_back(wav5_dis30_data);
+    wavelen5_data.push_back(wav5_dis31_data);
+    wavelen5_data.push_back(wav5_dis32_data);
+
+    //Temp置零
+    memset(Temp_1,0,sizeof(int)*DISNUM);
+    memset(Temp_2,0,sizeof(int)*DISNUM);
+    memset(Temp_3,0,sizeof(int)*DISNUM);
+    memset(Temp_4,0,sizeof(int)*DISNUM);
+    memset(Temp_5,0,sizeof(int)*DISNUM);
+}
+
+demodulation::~demodulation()
+{
+    delete[] all_wavelength_data;
+}
+
+void demodulation::read_config()
+{
+    QSettings *settings = new QSettings("C:/Qt_UDP_DTS/config.ini",QSettings::IniFormat);
+
+    //Read
+    settings->beginGroup("DETECTION");
+    threshold = settings->value("ALG_THRESHOLD",-1).toInt();
+    qDebug()<<"threshold= "<<threshold<<endl;
+    settings->endGroup();
+
+    delete settings;
+}
+
+
+void demodulation::run()
+{
+
+    while(1){
+        /*--------------------------顺序光谱------------------------------*/
+        /*------------------------5波长波分复用----------------------------*/
+        /*-------------------每8192个数据执行一次解调-----------------------*/
+        /*------每32个数据为一段，共256段数据，将数据重排成32*256的数组形式------*/
+        for(int i=0; i<DISNUM; ++i){
+            for(int j=0; j<WAVNUM; ++j){
+
+                while(m_mainwindow->m_udp_recv->CHdata2->isEmpty()){
+                    QThread::msleep(1);
+                }
+
+                all_wavelength_data[i][j]=m_mainwindow->m_udp_recv->CHdata2->pop();
+            }
+        }
+
+        qDebug()<<"Resort Recived CHdata Finished ! "<<endl;
+
+        /*---单波长解调，按光源扫描波长整理数据----*/
+        /*raw_data中波长顺序:  λ32、λ33 ... λ64、λ1、λ2 ... λ31*/
+        /*实际UDP通信解调数据时按λ1、λ2 ... λ64的顺序来*/
+//        for(int i=0;i<WAVNUM;i++){
+//            for(int j=0;j<DISNUM;j++){
+
+//                while(m_mainwindow->m_udp_recv->CHdata2->isEmpty()){
+//                    QThread::msleep(1);
+//                }
+
+//                all_wavelength_data[i][j]=m_mainwindow->m_udp_recv->CHdata2->pop();
+//            }
+//        }
+
+        /*------------------------------裁切光谱----------------------------*/
+                    /*------长度为256的序列的1~50为波长1-------*/
+                    /*------长度为256的序列的51~100为波长2-------*/
+                    /*------长度为256的序列的101~150为波长3-------*/
+                    /*------长度为256的序列的151~200为波长4-------*/
+                    /*------长度为256的序列的201~250为波长5-------*/
+                    /*------三个容器的容量均为32*50-------*/
+        for(int m=0; m<DISNUM; ++m){
+            //wave1 distance m
+            copy(all_wavelength_data[m],all_wavelength_data[m]+WAVLENNUM,wavelen1_data[m].begin());
+            //wave2 distance m
+            copy(all_wavelength_data[m]+1+WAVLENNUM,all_wavelength_data[m]+2*WAVLENNUM,wavelen2_data[m].begin());
+            //wave3 distance m
+            copy(all_wavelength_data[m]+1+2*WAVLENNUM,all_wavelength_data[m]+3*WAVLENNUM,wavelen3_data[m].begin());
+            //wave4 distance m
+            copy(all_wavelength_data[m]+1+3*WAVLENNUM,all_wavelength_data[m]+4*WAVLENNUM,wavelen4_data[m].begin());
+            //wave5 distance m
+            copy(all_wavelength_data[m]+1+4*WAVLENNUM,all_wavelength_data[m]+5*WAVLENNUM,wavelen5_data[m].begin());
+        }
+
+
+        /*----------------------------温度判断算法---------------------------*/
+        //定义阈值mean
+        int mean1 = 0;
+        int mean2 = 0;
+        int mean3 = 0;
+        int mean4 = 0;
+        int mean5 = 0;
+
+        //最大温度
+        MAX_Temp_1 = 0;
+        MAX_Temp_2 = 0;
+        MAX_Temp_3 = 0;
+        MAX_Temp_4 = 0;
+        MAX_Temp_5 = 0;
+
+        //波长1
+        //第一个距离的波长值取平均后加一个阈值
+        for(int n=0; n<WAVLENNUM; n++)
+            mean1 += wavelen1_data[1][n];
+        mean1 = mean1/WAVLENNUM + threshold;
+
+        for(int a=0;a<DISNUM;a++){
+            for(int b=0; b<WAVLENNUM; b++){
+                if(wavelen1_data[a][b]>mean1 )
+                    Temp_1[a] = (1549.5+0.08*b-1549.7)/0.08; //根据公式计算出温度值(校准)
+            }
+            //将最大温度置于MAX_Temp里
+            if(Temp_1[a]>MAX_Temp_1) MAX_Temp_1 = Temp_1[a];
+        }
+
+        //波长2
+        //第一个距离的波长值取平均后加一个阈值
+        for(int n=0; n<WAVLENNUM; n++)
+            mean2 += wavelen2_data[1][n];
+        mean2 = mean2/WAVLENNUM + threshold;
+
+        for(int a=0;a<DISNUM;a++){
+            for(int b=0; b<WAVLENNUM; b++){
+                if(wavelen2_data[a][b]>mean2 )
+                    Temp_2[a] = (1549.5+0.08*b-1549.7)/0.08;  //根据公式计算出温度值(校准)
+            }
+            //将最大温度置于MAX_Temp里
+            if(Temp_2[a]>MAX_Temp_2) MAX_Temp_2 = Temp_2[a];
+        }
+
+        //波长3
+        //第一个距离的波长值取平均后加一个阈值
+        for(int n=0; n<WAVLENNUM; n++)
+            mean3 += wavelen3_data[1][n];
+        mean3 = mean3/WAVLENNUM + threshold;
+
+        for(int a=0;a<DISNUM;a++){
+            for(int b=0; b<WAVLENNUM ; b++){
+                if(wavelen3_data[a][b]>mean3 )
+                    Temp_3[a] = (1549.5+0.08*b-1549.7)/0.08;  //根据公式计算出温度值(校准)
+            }
+            //将最大温度置于MAX_Temp里
+            if(Temp_3[a]>MAX_Temp_3) MAX_Temp_3 = Temp_3[a];
+        }
+
+        //波长4
+        //第一个距离的波长值取平均后加一个阈值
+        for(int n=0; n<WAVLENNUM; n++)
+            mean4 += wavelen4_data[1][n];
+        mean4 = mean4/WAVLENNUM + threshold;
+
+        for(int a=0;a<DISNUM;a++){
+            for(int b=0; b<WAVLENNUM ; b++){
+                if(wavelen4_data[a][b]>mean4 )
+                    Temp_4[a] = (1549.5+0.08*b-1549.7)/0.08;  //根据公式计算出温度值(校准)
+            }
+            //将最大温度置于MAX_Temp里
+            if(Temp_4[a]>MAX_Temp_4) MAX_Temp_4 = Temp_4[a];
+        }
+
+        //波长5
+        //第一个距离的波长值取平均后加一个阈值
+        for(int n=0; n<WAVLENNUM; n++)
+            mean5 += wavelen5_data[1][n];
+        mean5 = mean5/WAVLENNUM + threshold;
+
+        for(int a=0;a<DISNUM;a++){
+            for(int b=0; b<WAVLENNUM ; b++){
+                if(wavelen5_data[a][b]>mean5 )
+                    Temp_5[a] = (1549.5+0.08*b-1549.7)/0.08; //根据公式计算出温度值(校准)
+            }
+            //将最大温度置于MAX_Temp里
+            if(Temp_5[a]>MAX_Temp_5) MAX_Temp_5 = Temp_5[a];
+        }
+        qDebug()<<"Temp Distance finished ! "<<endl;
+    }
+
+}
+
+#ifndef DEMODULATION_H
+#define DEMODULATION_H
+
+#include <QObject>
+#include <mainwindow.h>
+//#include <qwt3d_surfaceplot.h>
+#include <algorithm>
+#include <vector>
+
+//#define WAVNUM 64 //波长数目
+//#define DISNUM 128 //距离采样点点数
+
+enum { WAVNUM = 256 }; //顺序光谱波长轴点数
+enum { DISNUM = 32 }; //裁切后光谱距离轴点数
+enum { WAVLENNUM = 50}; //裁切后光谱波长轴点数
+//enum { SAMNUM = 32}; //距离轴点数
+
+
+class MainWindow;
+
+class demodulation : public QThread
+{
+    Q_OBJECT
+public:
+    explicit demodulation(MainWindow* _mainWindow);
+    ~demodulation();
+
+    MainWindow* m_mainwindow;
+
+    void read_config();
+
+    int** all_wavelength_data;
+    int single_wave_data_1[WAVNUM]={'\0'};
+    int single_wave_data_2[WAVNUM]={'\0'};
+    int single_wave_data_3[WAVNUM]={'\0'};
+    int single_wave_data_4[WAVNUM]={'\0'};
+    int single_wave_data_5[WAVNUM]={'\0'};
+    int single_wave_data_6[WAVNUM]={'\0'};
+    int single_wave_data_7[WAVNUM]={'\0'};
+    int single_wave_data_8[WAVNUM]={'\0'};
+    int single_wave_data_9[WAVNUM]={'\0'};
+    int single_wave_data_10[WAVNUM]={'\0'};
+    int single_wave_data_11[WAVNUM]={'\0'};
+    int single_wave_data_12[WAVNUM]={'\0'};
+    int single_wave_data_13[WAVNUM]={'\0'};
+    int single_wave_data_14[WAVNUM]={'\0'};
+    int single_wave_data_15[WAVNUM]={'\0'};
+    int single_wave_data_16[WAVNUM]={'\0'};
+    int single_wave_data_17[WAVNUM]={'\0'};
+    int single_wave_data_18[WAVNUM]={'\0'};
+    int single_wave_data_19[WAVNUM]={'\0'};
+    int single_wave_data_20[WAVNUM]={'\0'};
+    int single_wave_data_21[WAVNUM]={'\0'};
+    int single_wave_data_22[WAVNUM]={'\0'};
+    int single_wave_data_23[WAVNUM]={'\0'};
+    int single_wave_data_24[WAVNUM]={'\0'};
+    int single_wave_data_25[WAVNUM]={'\0'};
+    int single_wave_data_26[WAVNUM]={'\0'};
+    int single_wave_data_27[WAVNUM]={'\0'};
+    int single_wave_data_28[WAVNUM]={'\0'};
+    int single_wave_data_29[WAVNUM]={'\0'};
+    int single_wave_data_30[WAVNUM]={'\0'};
+    int single_wave_data_31[WAVNUM]={'\0'};
+    int single_wave_data_32[WAVNUM]={'\0'};
+//    int single_wave_data_33[DISNUM]={'\0'};
+//    int single_wave_data_34[DISNUM]={'\0'};
+//    int single_wave_data_35[DISNUM]={'\0'};
+//    int single_wave_data_36[DISNUM]={'\0'};
+//    int single_wave_data_37[DISNUM]={'\0'};
+//    int single_wave_data_38[DISNUM]={'\0'};
+//    int single_wave_data_39[DISNUM]={'\0'};
+//    int single_wave_data_40[DISNUM]={'\0'};
+//    int single_wave_data_41[DISNUM]={'\0'};
+//    int single_wave_data_42[DISNUM]={'\0'};
+//    int single_wave_data_43[DISNUM]={'\0'};
+//    int single_wave_data_44[DISNUM]={'\0'};
+//    int single_wave_data_45[DISNUM]={'\0'};
+//    int single_wave_data_46[DISNUM]={'\0'};
+//    int single_wave_data_47[DISNUM]={'\0'};
+//    int single_wave_data_48[DISNUM]={'\0'};
+//    int single_wave_data_49[DISNUM]={'\0'};
+//    int single_wave_data_50[DISNUM]={'\0'};
+//    int single_wave_data_51[DISNUM]={'\0'};
+//    int single_wave_data_52[DISNUM]={'\0'};
+//    int single_wave_data_53[DISNUM]={'\0'};
+//    int single_wave_data_54[DISNUM]={'\0'};
+//    int single_wave_data_55[DISNUM]={'\0'};
+//    int single_wave_data_56[DISNUM]={'\0'};
+//    int single_wave_data_57[DISNUM]={'\0'};
+//    int single_wave_data_58[DISNUM]={'\0'};
+//    int single_wave_data_59[DISNUM]={'\0'};
+//    int single_wave_data_60[DISNUM]={'\0'};
+//    int single_wave_data_61[DISNUM]={'\0'};
+//    int single_wave_data_62[DISNUM]={'\0'};
+//    int single_wave_data_63[DISNUM]={'\0'};
+//    int single_wave_data_64[DISNUM]={'\0'};
+
+    vector<vector<int>> wavelen1_data; //存放波长1裁切的光谱数据，DISNUM*WAVLENNUM个点
+    vector<int> wav1_dis1_data; //波长1距离1
+    vector<int> wav1_dis2_data;
+    vector<int> wav1_dis3_data;
+    vector<int> wav1_dis4_data;
+    vector<int> wav1_dis5_data;
+    vector<int> wav1_dis6_data;
+    vector<int> wav1_dis7_data;
+    vector<int> wav1_dis8_data;
+    vector<int> wav1_dis9_data;
+    vector<int> wav1_dis10_data;
+    vector<int> wav1_dis11_data;
+    vector<int> wav1_dis12_data;
+    vector<int> wav1_dis13_data;
+    vector<int> wav1_dis14_data;
+    vector<int> wav1_dis15_data;
+    vector<int> wav1_dis16_data;
+    vector<int> wav1_dis17_data;
+    vector<int> wav1_dis18_data;
+    vector<int> wav1_dis19_data;
+    vector<int> wav1_dis20_data;
+    vector<int> wav1_dis21_data;
+    vector<int> wav1_dis22_data;
+    vector<int> wav1_dis23_data;
+    vector<int> wav1_dis24_data;
+    vector<int> wav1_dis25_data;
+    vector<int> wav1_dis26_data;
+    vector<int> wav1_dis27_data;
+    vector<int> wav1_dis28_data;
+    vector<int> wav1_dis29_data;
+    vector<int> wav1_dis30_data;
+    vector<int> wav1_dis31_data;
+    vector<int> wav1_dis32_data;
+
+    vector<vector<int>> wavelen2_data; //存放波长2裁切的光谱数据
+    vector<int> wav2_dis1_data; //波长2距离1
+    vector<int> wav2_dis2_data;
+    vector<int> wav2_dis3_data;
+    vector<int> wav2_dis4_data;
+    vector<int> wav2_dis5_data;
+    vector<int> wav2_dis6_data;
+    vector<int> wav2_dis7_data;
+    vector<int> wav2_dis8_data;
+    vector<int> wav2_dis9_data;
+    vector<int> wav2_dis10_data;
+    vector<int> wav2_dis11_data;
+    vector<int> wav2_dis12_data;
+    vector<int> wav2_dis13_data;
+    vector<int> wav2_dis14_data;
+    vector<int> wav2_dis15_data;
+    vector<int> wav2_dis16_data;
+    vector<int> wav2_dis17_data;
+    vector<int> wav2_dis18_data;
+    vector<int> wav2_dis19_data;
+    vector<int> wav2_dis20_data;
+    vector<int> wav2_dis21_data;
+    vector<int> wav2_dis22_data;
+    vector<int> wav2_dis23_data;
+    vector<int> wav2_dis24_data;
+    vector<int> wav2_dis25_data;
+    vector<int> wav2_dis26_data;
+    vector<int> wav2_dis27_data;
+    vector<int> wav2_dis28_data;
+    vector<int> wav2_dis29_data;
+    vector<int> wav2_dis30_data;
+    vector<int> wav2_dis31_data;
+    vector<int> wav2_dis32_data;
+
+    vector<vector<int>> wavelen3_data; //存放波长3裁切的光谱数据
+    vector<int> wav3_dis1_data; //波长3距离1
+    vector<int> wav3_dis2_data;
+    vector<int> wav3_dis3_data;
+    vector<int> wav3_dis4_data;
+    vector<int> wav3_dis5_data;
+    vector<int> wav3_dis6_data;
+    vector<int> wav3_dis7_data;
+    vector<int> wav3_dis8_data;
+    vector<int> wav3_dis9_data;
+    vector<int> wav3_dis10_data;
+    vector<int> wav3_dis11_data;
+    vector<int> wav3_dis12_data;
+    vector<int> wav3_dis13_data;
+    vector<int> wav3_dis14_data;
+    vector<int> wav3_dis15_data;
+    vector<int> wav3_dis16_data;
+    vector<int> wav3_dis17_data;
+    vector<int> wav3_dis18_data;
+    vector<int> wav3_dis19_data;
+    vector<int> wav3_dis20_data;
+    vector<int> wav3_dis21_data;
+    vector<int> wav3_dis22_data;
+    vector<int> wav3_dis23_data;
+    vector<int> wav3_dis24_data;
+    vector<int> wav3_dis25_data;
+    vector<int> wav3_dis26_data;
+    vector<int> wav3_dis27_data;
+    vector<int> wav3_dis28_data;
+    vector<int> wav3_dis29_data;
+    vector<int> wav3_dis30_data;
+    vector<int> wav3_dis31_data;
+    vector<int> wav3_dis32_data;
+
+    vector<vector<int>> wavelen4_data; //存放波长4裁切的光谱数据，DISNUM*WAVLENNUM个点
+    vector<int> wav4_dis1_data; //波长4距离1
+    vector<int> wav4_dis2_data;
+    vector<int> wav4_dis3_data;
+    vector<int> wav4_dis4_data;
+    vector<int> wav4_dis5_data;
+    vector<int> wav4_dis6_data;
+    vector<int> wav4_dis7_data;
+    vector<int> wav4_dis8_data;
+    vector<int> wav4_dis9_data;
+    vector<int> wav4_dis10_data;
+    vector<int> wav4_dis11_data;
+    vector<int> wav4_dis12_data;
+    vector<int> wav4_dis13_data;
+    vector<int> wav4_dis14_data;
+    vector<int> wav4_dis15_data;
+    vector<int> wav4_dis16_data;
+    vector<int> wav4_dis17_data;
+    vector<int> wav4_dis18_data;
+    vector<int> wav4_dis19_data;
+    vector<int> wav4_dis20_data;
+    vector<int> wav4_dis21_data;
+    vector<int> wav4_dis22_data;
+    vector<int> wav4_dis23_data;
+    vector<int> wav4_dis24_data;
+    vector<int> wav4_dis25_data;
+    vector<int> wav4_dis26_data;
+    vector<int> wav4_dis27_data;
+    vector<int> wav4_dis28_data;
+    vector<int> wav4_dis29_data;
+    vector<int> wav4_dis30_data;
+    vector<int> wav4_dis31_data;
+    vector<int> wav4_dis32_data;
+
+    vector<vector<int>> wavelen5_data; //存放波长5裁切的光谱数据
+    vector<int> wav5_dis1_data; //波长5距离1
+    vector<int> wav5_dis2_data;
+    vector<int> wav5_dis3_data;
+    vector<int> wav5_dis4_data;
+    vector<int> wav5_dis5_data;
+    vector<int> wav5_dis6_data;
+    vector<int> wav5_dis7_data;
+    vector<int> wav5_dis8_data;
+    vector<int> wav5_dis9_data;
+    vector<int> wav5_dis10_data;
+    vector<int> wav5_dis11_data;
+    vector<int> wav5_dis12_data;
+    vector<int> wav5_dis13_data;
+    vector<int> wav5_dis14_data;
+    vector<int> wav5_dis15_data;
+    vector<int> wav5_dis16_data;
+    vector<int> wav5_dis17_data;
+    vector<int> wav5_dis18_data;
+    vector<int> wav5_dis19_data;
+    vector<int> wav5_dis20_data;
+    vector<int> wav5_dis21_data;
+    vector<int> wav5_dis22_data;
+    vector<int> wav5_dis23_data;
+    vector<int> wav5_dis24_data;
+    vector<int> wav5_dis25_data;
+    vector<int> wav5_dis26_data;
+    vector<int> wav5_dis27_data;
+    vector<int> wav5_dis28_data;
+    vector<int> wav5_dis29_data;
+    vector<int> wav5_dis30_data;
+    vector<int> wav5_dis31_data;
+    vector<int> wav5_dis32_data;
+
+//    int Temp[DISNUM];
+    int Temp_1[DISNUM]; //波长1的温度
+    int Temp_2[DISNUM]; //波长2的温度
+    int Temp_3[DISNUM]; //波长3的温度
+    int Temp_4[DISNUM]; //波长4的温度
+    int Temp_5[DISNUM]; //波长5的温度
+    int MAX_Temp_1; //波长1最大温度值
+    int MAX_Temp_2; //波长2最大温度值
+    int MAX_Temp_3; //波长3最大温度值
+    int MAX_Temp_4; //波长4最大温度值
+    int MAX_Temp_5; //波长5最大温度值
+    int threshold; //定义寻峰阈值
+
+    void run();
+
+signals:
+
+};
+
+#endif // DEMODULATION_H
+
+/* @Decription 通过数组实现线程安全循环队列
+* 其本质上是一个T类型的数组 比如CHdata就是一个unsigned char类型的数组
+* */
+#pragma once
+#include<stdlib.h>
+#include<stdio.h>
+#include<iostream>
+
+using namespace std;
+
+template<typename T>
+class CirQueue
+{
+
+public:
+    CirQueue();
+    CirQueue(unsigned long maxlen);
+    ~CirQueue();
+public:
+    void setMaxLen(unsigned long maxlen);
+    bool isEmpty();
+    bool isFull();
+
+    void push(T element);
+    T pop();
+    T front();
+    T back();
+    T* begin();
+    T* end();
+    void clear();
+    unsigned long writePos();
+    unsigned long readPos();
+    unsigned long MaxLength();
+    unsigned long size();
+     unsigned long M_LEN;
+
+
+private:
+    T *m_data = NULL;
+    unsigned long m_front;
+    unsigned long m_rear;
+
+    unsigned long M_wrpos;//当前写入位置
+    unsigned long M_rdpos;//当前读取位置
+public:
+
+};
+
+#include "CirQueue.h"
+
+template<typename T>
+CirQueue<T>::CirQueue()
+{
+    m_data = NULL;
+    m_front = 0;
+    m_rear = 0;
+    M_LEN = 0;
+    M_wrpos = 0;
+    M_rdpos = 0;
+}
+/**
+ * @brief 通过预先配置数组的空间大小构造队列，多线程对数组进行内存分配会出错
+ */
+template<typename T>
+CirQueue<T>::CirQueue(unsigned long maxlen)
+{
+    m_front = 0;
+    m_rear = 0;
+    M_rdpos = 0;
+    M_wrpos = 0;
+    M_LEN = maxlen;
+    m_data = new T[M_LEN]();
+}
+
+template<typename T>
+CirQueue<T>::~CirQueue()
+{
+    delete[] m_data;
+    m_data = NULL;
+}
+/**
+ * @brief 重新分配循环队列的内存大小
+ */
+template<typename T>
+void CirQueue<T>::setMaxLen(unsigned long maxlen)
+{
+    m_front = 0;
+    m_rear = 0;
+    M_rdpos = 0;
+    M_wrpos = 0;
+    M_LEN = maxlen;
+    if (m_data != NULL)
+    {
+        delete[] m_data;
+    }
+    m_data = new T[M_LEN]();
+}
+
+template<typename T>
+bool CirQueue<T>::isFull()
+{
+    return m_front == ((m_rear + 1) % M_LEN);
+}
+
+template<typename T>
+bool CirQueue<T>::isEmpty()
+{
+    return m_front == m_rear;
+}
+
+template<typename T>
+void CirQueue<T>::push(T element)
+{
+    if (isFull())
+    {
+        printf("The Circle Queue Has  Be FULL yuanshiduilie !!\n");
+        return;
+    }
+    m_data[m_rear] = element;
+    M_wrpos = m_rear;
+    m_rear = (m_rear + 1) % M_LEN;
+}
+
+template<typename T>
+T CirQueue<T>::pop()
+{
+    if (isEmpty())
+    {
+        printf("The Circle Queue is Empty!!\n");
+        return m_data[m_front];
+    }
+    m_front = (m_front + 1) % M_LEN;
+    M_rdpos = m_front - 1;
+    return m_data[m_front - 1];
+}
+
+template<typename T>
+T CirQueue<T>::front()
+{
+    return m_data[m_front];
+}
+
+template<typename T>
+T* CirQueue<T>::begin()
+{
+    return m_data + m_front;
+}
+
+template<typename T>
+T CirQueue<T>::back()
+{
+    return m_data[m_rear - 1];
+}
+
+
+template<typename T>
+T* CirQueue<T>::end()
+{
+    return m_data + m_rear - 1;
+}
+
+/**
+ * @brief 获取循环队列的分配内存大小(当前可以存储的队列最大长度)
+ */
+template<typename T>
+unsigned long CirQueue<T>::MaxLength()
+{
+    return M_LEN;
+}
+/**
+ * @brief 获取当前队列中有效数据的长度
+ */
+template<typename T>
+unsigned long CirQueue<T>::size()
+{
+    return (m_rear - m_front + M_LEN) % M_LEN;
+}
+
+/**
+ * 清空队列
+ */
+template<typename T>
+void CirQueue<T>::clear()
+{
+    m_rear = m_front = 0;
+}
+
+#include "udp_recv.h"
+
+udp_recv::udp_recv(MainWindow* _mainwindow) :
+    m_mainwindow(_mainwindow),
+    PORT(8080),
+    net_pack_size(0),
+    lenoRecv(1024),
+    lenoRecvHEX(2*lenoRecv),
+    LenoUDP(128*64*33*1000),
+    CHdata2(make_shared<CirQueue<int>>(LenoUDP)),
+    pack_HEX_33(new char[33*1024*2]),
+    pack_HEX_Resolve(new char[33*1024*2])
+
+{
+    read_config();
+
+    sockVersion = MAKEWORD(2,2);
+    if(WSAStartup(sockVersion, &wsaData) != 0)
+    {
+        printf("winsock initialization FAILED.");
+    }
+    echo_socket_WIN = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if(echo_socket_WIN == INVALID_SOCKET)
+    {
+        printf("winsocket error !");
+    }
+    addr_WIN.sin_family = AF_INET;
+    addr_WIN.sin_port = htons(8080);
+    addr_WIN.sin_addr.S_un.S_addr = INADDR_ANY;
+    if(::bind(echo_socket_WIN, (sockaddr *)&addr_WIN, sizeof(addr_WIN)) == SOCKET_ERROR)
+    {
+        printf("bind error !");
+        closesocket(echo_socket_WIN);
+    }
+    // set socket buffer size
+    int optVal = 0;
+    int optLen = sizeof(optVal);
+    optVal = 4*1024*100000;
+    setsockopt(echo_socket_WIN, SOL_SOCKET, SO_RCVBUF, (char*)&optVal, optLen);
+
+    //预先申请存储空间
+    p_echo_net_pack_array.reserve(1024);
+
+}
+
+udp_recv::~udp_recv()
+{
+    delete[] pack_HEX_33;
+    delete[] pack_HEX_Resolve;
+}
+
+void udp_recv::read_config()
+{
+    QSettings *settings = new QSettings("C:/Qt_UDP_DTS/config.ini",QSettings::IniFormat);
+
+    //Read
+    settings->beginGroup("UDP_RECV");
+    PORT = settings->value("PORT",-1).toInt();
+    qDebug()<<"PORT= "<<PORT<<endl;
+    settings->endGroup();
+
+    delete settings;
+}
+
+void udp_recv::run()
+{
+    while(1){
+
+        p_echo_net_pack[0] = '\0'; //初始化为空，除第一个为空外，其余为随机值
+
+        net_pack_size = recvfrom(echo_socket_WIN, (char*)p_echo_net_pack, lenoRecv, 0, (sockaddr *)&src_addr_WIN, &src_addr_len);
+
+        qDebug()<<"Reciving net_pack_size = "<< net_pack_size <<endl;
+
+        p_echo_net_pack_array.clear();
+        p_echo_net_pack_HEX.clear();
+
+        //2.char* 转 QByteArray, p_echo_net_pack >> p_echo_pack_array
+        p_echo_net_pack_array = QByteArray(p_echo_net_pack,lenoRecv);
+
+        p_echo_net_pack_HEX = p_echo_net_pack_array.toHex().toUpper();
+
+        qDebug()<<p_echo_net_pack_HEX[0]<<p_echo_net_pack_HEX[1]<<p_echo_net_pack_HEX[2]<<p_echo_net_pack_HEX[3]
+                <<p_echo_net_pack_HEX[4]<<p_echo_net_pack_HEX[5]<<p_echo_net_pack_HEX[6]<<p_echo_net_pack_HEX[7]<<endl;
+
+        //帧头识别功能
+        //判断33帧数据的帧头，从而定位起点位置.
+        //若某帧是FEFEFEFE...，则该帧是起点帧
+        if(p_echo_net_pack_HEX[0]=='F' && p_echo_net_pack_HEX[1]=='E' && p_echo_net_pack_HEX[2]=='F' && p_echo_net_pack_HEX[3]=='E'&&p_echo_net_pack_HEX[4]=='F' && p_echo_net_pack_HEX[5]=='E' && p_echo_net_pack_HEX[6]=='F' && p_echo_net_pack_HEX[7]=='E')
+            isStartFrame = 1;
+
+        if(isStartFrame){
+            for(int k = 2*pack_count; k<(2*pack_count + 2048) ; k++ )
+                pack_HEX_33[k] = p_echo_net_pack_HEX[k-2*pack_count];
+
+            //计数收到的包次数
+            pack_count = pack_count + 1024;
+
+            //每收到33个包时，称为一个事件
+            if(pack_count>=1024*33){
+                isStartFrame = 0;
+                pack_count = 0;
+
+                //pack_HEX_33[] >> pack_HEX_Resolve[]
+                memcpy(pack_HEX_Resolve,pack_HEX_33,sizeof(char)*2048*33);
+                memset(pack_HEX_33,'\0',sizeof(char)); //清空数组
+
+                qDebug()<<"Has Received 33 Frames! " <<endl;
+
+                //3.pack_HEX_Resolve >> CHData
+                for(int j=1;j<33;j++){
+
+                    //接收的数据按小端排列，比如82 04 14 00转化为大端排列是00 14 04 82
+                    for(int i=0; i<lenoRecvHEX; i+=8) {
+
+                        bool ok;
+                        int temp_DEC = QString((unsigned char)pack_HEX_Resolve[2048*j+i]).toInt(&ok,16)*16
+                                + QString((unsigned char)pack_HEX_Resolve[2048*j+i+1]).toInt(&ok,16)*1
+                                + QString((unsigned char)pack_HEX_Resolve[2048*j+i+2]).toInt(&ok,16)*4096
+                                + QString((unsigned char)pack_HEX_Resolve[2048*j+i+3]).toInt(&ok,16)*256
+                                + QString((unsigned char)pack_HEX_Resolve[2048*j+i+4]).toInt(&ok,16)*1048576
+                                + QString((unsigned char)pack_HEX_Resolve[2048*j+i+5]).toInt(&ok,16)*65536
+                                + QString((unsigned char)pack_HEX_Resolve[2048*j+i+6]).toInt(&ok,16)*0
+                                + QString((unsigned char)pack_HEX_Resolve[2048*j+i+7]).toInt(&ok,16)*0;
+
+                        CHdata2->push(temp_DEC);
+
+                    } //end for
+
+                } //end for
+
+            }//end if
+
+
+        }//end if
+
+    } //end while
+
+
+}
+
+#ifndef UDP_RECV_H
+#define UDP_RECV_H
+
+#include <WinSock2.h>
+#include <Windows.h>
+#include <mainwindow.h>
+#include <QThread>
+#include "CirQueue.h"
+
+class MainWindow;
+
+class udp_recv : public QThread
+{
+    Q_OBJECT
+public:
+    explicit udp_recv(MainWindow* _mainwindow);
+    ~udp_recv();
+
+    MainWindow* m_mainwindow;
+
+    void read_config();
+
+    //winSocket API
+    WSADATA wsaData;
+    WORD sockVersion;
+    SOCKET echo_socket_WIN;
+    sockaddr_in addr_WIN;
+    sockaddr_in src_addr_WIN;
+    int PORT;
+    int src_addr_len = sizeof(src_addr_WIN);
+    int net_pack_size; //UDP实际接收一帧数据长度
+    QByteArray p_echo_net_pack_HEX;
+    QByteArray p_echo_net_pack_array;
+    char p_echo_net_pack[1024];
+    const int lenoRecv; //设置UDP接受一帧数据长度
+    const int lenoRecvHEX; //设置的一帧HEX数据长度
+    const int LenoUDP; //设置存储容器的大小
+
+    shared_ptr<CirQueue<int>> CHdata2; //存放UDP接收的HEX数据
+
+    bool isStartFrame = 0; //帧头校验位
+    int pack_count=0; //帧计数
+    char* pack_HEX_33; //用于存放33帧数据
+    char* pack_HEX_Resolve; //用于存放后面解析的数据
+
+signals:
+
+protected:
+    void run();
+
+};
+
+#endif // UDP_RECV_H
+
+#include "udp_send.h"
+
+udp_send::udp_send(MainWindow* _mainwindow):
+    m_mainwindow(_mainwindow),
+    sender(new QUdpSocket(this)),
+    desAddress("192.168.0.10"),
+    desPort(7),
+    order("23")
+{
+    read_config();
+}
+
+udp_send::~udp_send()
+{
+
+}
+
+void udp_send::read_config()
+{
+    QSettings *settings = new QSettings("C:/Qt_UDP_DTS/config.ini",QSettings::IniFormat);
+
+    //Read
+    settings->beginGroup("UDP_SEND");
+    desAddress = settings->value("QHOSTADDRESS","").toString();
+    desPort = settings->value("PORT",-1).toInt();
+    order = settings->value("ORDER","").toString();
+    settings->endGroup();
+
+    delete settings;
+}
+
+void udp_send::run()
+{
+    QByteArray m_send = order.toLatin1();
+
+    int lenoSend = strlen(m_send);
+
+    sender->writeDatagram(m_send.data(),lenoSend,QHostAddress(desAddress),desPort);
+
+    qDebug()<<"Sender Order: " << m_send<<endl;
+}
+
+#ifndef UDP_SEND_H
+#define UDP_SEND_H
+
+//#include <WinSock2.h>
+//#include <Windows.h>
+#include <mainwindow.h>
+#include <QThread>
+#include "CirQueue.h"
+#include <stdio.h>
+#include <QUdpSocket>
+
+class MainWindow;
+class QUdpSocket;
+
+class udp_send : public QThread
+{
+    Q_OBJECT
+
+public:
+    explicit udp_send(MainWindow* _mainwindow);
+    ~udp_send();
+
+    MainWindow* m_mainwindow;
+
+    QUdpSocket *sender;
+    QString desAddress;
+    int desPort;
+    QString order;
+
+    void read_config();
+
+protected:
+    void run();
+};
+
+#endif // UDP_SEND_H
+
+QT       += core gui printsupport webenginewidgets webchannel network
+
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+
+CONFIG += c++11 resources_big
+
+# You can make your code fail to compile if it uses deprecated APIs.
+# In order to do so, uncomment the following line.
+#DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
+
+SOURCES += \
+    demodulation.cpp \
+    main.cpp \
+    mainwindow.cpp \
+    udp_recv.cpp \
+    udp_send.cpp
+
+HEADERS += \
+    CirQueue.h \
+    demodulation.h \
+    mainwindow.h \
+    udp_recv.h \
+    udp_send.h
+
+FORMS += \
+    mainwindow.ui
+
+
+# Default rules for deployment.
+qnx: target.path = /tmp/$${TARGET}/bin
+else: unix:!android: target.path = /opt/$${TARGET}/bin
+!isEmpty(target.path): INSTALLS += target
+
+#下面四条是打开Matlab文件的lib包
+#INCLUDEPATH += D:\MATLAB2021a\extern\include\
+#LIBS += -LD:\MATLAB2021a\extern\lib\win64\microsoft\  -llibeng
+#LIBS += -LD:\MATLAB2021a\extern\lib\win64\microsoft\ -llibmx
+#LIBS += -LD:\MATLAB2021a\extern\lib\win64\microsoft\ -llibmat
+
+#qwtplot3d的配置
+#还需要将qwtplot3d.dll复制到的Qt_UDP_DTS目录下的bin目录里
+#INCLUDEPATH    +=$$PWD/include
+#DEPENDPATH	= $$INCLUDEPATH
+#LIBS += $$PWD/lib/libqwtplot3d.a
+#DEFINES  += QT_DLL QWT3D_DLL
+#LIBS += -lopengl32 -lglu32
+
+QTQUICK_COMPILER_SKIPPED_RESOURCES += xxxx.qrc
+
+DISTFILES += \
+    res/echarts.js \
+    res/echarts.min.js \
+    res/my.qss \
+    res/raw_data_echarts.html
+
+LIBS += -lws2_32
+
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1" />
+  <title>E2</title>
+  <link rel="stylesheet" href="css/bootstrap.min.css" />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+
+<body onload="getnow()" class='bg02'>
+
+
+  <header class="header">
+    <h3>飞机引气泄露监测</h3>
+    <div class="header-info header-info-l">最高温度：<span id="highest"></span>℃</div>
+    <div class="header-info header-info-r">时间：<span id="nowspan"></span></div>
+  </header>
+
+
+  <div class="wrapper">
+    <div id="container">
+      <div id="flexCon">
+
+
+        <div class="flex-row">
+          <div class="flex-cell flex-cell-lc">
+            <div class="chart-wrapper">
+              <div class="chart" id="chart">
+              </div>
+
+
+
+
+            </div>
+          </div>
+        </div>
+
+        <div class="flex-row">
+          <div class="flex-cell flex-cell-lc">
+            <div class="chart-wrapper">
+              <div class="chart-origin" id="show">
+                <!-- <img id="alarm_p" src="./img/alarm2.png"> -->
+                <div id="alarm"><span id="text" style="margin-top: 3%; display:block;"></span></div>
+
+                <img id="button1" src="./img/button.png" onclick="dianwo1()">
+                <img id="button2" src="./img/button.png" onclick="dianwo2()">
+                <img id="button3" src="./img/button.png" onclick="dianwo3()">
+                <img id="button4" src="./img/button.png" onclick="dianwo4()">
+                <img id="button5" src="./img/button.png" onclick="dianwo5()">
+                <div class="jianmo" id="jianmo"></div>
+                <div class="window1" id="window"></div>
+                <!-- <div class="window2" id="window1">
+                  <img id="ss" src="./img/red.png">
+                </div> -->
+                <div class="tankuang" id="tankuang"></div>
+                <div id="header-right" onclick="hidder()">x</div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <script type="text/javascript" src="js/jquery-3.3.1.min.js"></script>
+  <script type="text/javascript" src="js/echarts-3.8.5.min.js"></script>
+  <script type="text/javascript" src="js/echarts-map-world.js"></script>
+  <script type="text/javascript" src="js/echarts-map-china.js"></script>
+  <script type="text/javascript" src="js/echarts-china-provinces/jiangsu.js"></script>
+  <script type="text/javascript" src="js/echarts-china-cities/jiang1_su1_su1_zhou1.js"></script>
+  <script type="text/javascript" src="js/echarts-china-counties/jiang1su1_su1zhou1_kun1shan1shi4.js"></script>
+  <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/echarts@5.3.3/dist/echarts.min.js"></script>
+  <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/echarts@5.4.0/dist/echarts.min.js"></script>
+  <script src="./echarts.min.js"></script>
+  <script src="./echarts.js"></script>
+  <script type="text/javascript">
+
+    let history_data1 = [];
+    let history_data2 = [];
+    let history_data3 = [];
+    let history_data4 = [];
+    let history_data5 = [];
+    let history_time = [];
+    let temp_ratio1 = [];//温升率
+    let temp_ratio2 = [];//温升率
+    let temp_ratio3 = [];//温升率
+    let temp_ratio4 = [];//温升率
+    let temp_ratio5 = [];//温升率
+    let x_data = [];
+    // let dis_temp_1 = [];
+    // let dis_temp_2 = [];
+    // let dis_temp_3 = [];
+    // let dis_temp_4 = [];
+    // let dis_temp_5 = [];
+
+
+    // for (var i = 1; i < 200; i++) {
+    // history_time.push([i, i+1, i+2].join(':'));
+    // }
+    for (var i = 0; i < 32; i++) {
+      x_data.push((i * 0.4).toFixed(1));
+    }
+
+    document.getElementById('window').style.visibility = "hidden";
+    document.getElementById('tankuang').style.visibility = "hidden";
+    document.getElementById('header-right').style.visibility = "hidden";
+    document.getElementById('alarm').style.visibility = 'hidden';
+    // document.getElementById('window1').style.visibility='hidden';
+
+    var hour, minute, second;
+
+    /******************* 获取时间 ******************/
+    function getnow() {
+      //1、获得当前时间，格式化时间
+      var now = new Date();
+      var year = now.getFullYear();
+      var month = now.getMonth() + 1;
+      if (month < 10) {
+        month = "0" + month;
+      }
+      var date = now.getDate();
+      if (date < 10) {
+        date = "0" + date;
+      }
+      hour = now.getHours();
+      if (hour < 10) {
+        hour = "0" + hour;
+      }
+      minute = now.getMinutes();
+      if (minute < 10) {
+        minute = "0" + minute;
+      }
+      second = now.getSeconds();
+      if (second < 10) {
+        second = "0" + second;
+      }
+      var nowstr = year + "年" + month + "月" + date + "日  " + hour + ":" + minute + ":" + second;
+      //alert(nowstr);
+      //2、显示时间 html
+      //获得标签对象
+      var nowspan = document.getElementById("nowspan");
+      nowspan.innerHTML = nowstr;
+      //3、使时间动起来
+      setTimeout("getnow()", 1000);
+    }
+
+    /******************* 距离温度曲线 ******************/
+    function dis_temp_curve(str) {
+      var dom = document.getElementById('chart');
+      var dis_temp_Chart = echarts.init(dom, null, {
+        renderer: 'canvas',
+        useDirtyRect: false
+      });
+      var app = {};
+
+      var option;
+
+      option = {
+        title: {
+          text: 'Stacked Line',
+          textStyle: {
+            color: "#5dc2fe"
+          }
+        },
+        tooltip: {
+          trigger: 'axis'
+        },
+        legend: {
+          textStyle: {
+            color: "#5dc2fe"
+          },
+          data: ['波长1', '波长2', '波长3', '波长4', '波长5']
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
+        },
+        toolbox: {
+          feature: {
+            saveAsImage: {}
+          }
+        },
+        xAxis: {
+          type: 'category',
+          boundaryGap: false,
+          axisLabel: {
+            textStyle: {
+              color: "#5dc2fe"
+            },
+          },
+          data: x_data
+        },
+        yAxis: {
+          axisLabel: {
+            textStyle: {
+              color: "#5dc2fe"
+            },
+          },
+          type: 'value',
+          min: 0,
+          max: 600
+        },
+        series: [
+          {
+            name: '波长1',
+            type: 'line',
+            stack: 'Total',
+            itemStyle: {
+              normal: {
+                lineStyle: {
+                  width: 5
+                }
+              }
+            },
+            data: str["dis_temp_1"]
+          },
+          {
+            name: '波长2',
+            type: 'line',
+            stack: 'Total',
+            itemStyle: {
+              normal: {
+                lineStyle: {
+                  width: 5
+                }
+              }
+            },
+            data: str["dis_temp_2"]
+          },
+          {
+            name: '波长3',
+            type: 'line',
+            stack: 'Total',
+            itemStyle: {
+              normal: {
+                lineStyle: {
+                  width: 5
+                }
+              }
+            },
+            data: str["dis_temp_3"]
+          },
+          {
+            name: '波长4',
+            type: 'line',
+            stack: 'Total',
+            itemStyle: {
+              normal: {
+                lineStyle: {
+                  width: 5
+                }
+              }
+            },
+            data: str["dis_temp_4"]
+          },
+          {
+            name: '波长5',
+            type: 'line',
+            stack: 'Total',
+            itemStyle: {
+              normal: {
+                lineStyle: {
+                  width: 5
+                }
+              }
+            },
+            data: str["dis_temp_5"]
+          }
+        ]
+      };
+
+      if (option && typeof option === 'object') {
+        dis_temp_Chart.setOption(option);
+      }
+
+      window.addEventListener('resize', dis_temp_Chart.resize);
+    }
+    /******************* 最高温度显示 ******************/
+    var highest_t;
+    var region;
+
+    function highTemp(str) {
+      var highest = document.getElementById('highest');
+      highest.innerHTML = str["temperature"];
+      highest_t = str["temperature"];
+      region = str["region"];
+
+    }
+
+    /******************* 温度显示建模(飞机引气管道) ******************/
+
+
+    function template(str) {
+
+      // prettier-ignore
+
+      var dom = document.getElementById('jianmo');   //bug
+      var showChart = echarts.init(dom, null, {
+        renderer: 'canvas',
+        useDirtyRect: false
+      });
+      var app = {};
+
+      var option;
+
+      // prettier-ignore
+      const xhours = [
+        '1', '2', '3', '4', '5'
+
+      ];
+      // prettier-ignore
+      const ydays = [
+        ' '
+      ];
+
+      var data = [[0, 0, str["template_temp1"]], [0, 1, str["template_temp2"]], [0, 2, str["template_temp3"]], [0, 3, str["template_temp4"]], [0, 4, str["template_temp5"]]]
+        .map(function (item) {
+          return [item[1], item[0], item[2] || '-'];
+        });
+
+      // let template_data1=[], template_data2=[],template_data3=[],template_data4=[],template_data5=[];
+      var temp1 = Number(str["template_temp1"]);
+      history_data1.push(temp1);
+      var temp2 = Number(str["template_temp2"]);
+      history_data2.push(temp2);
+      var temp3 = Number(str["template_temp3"]);
+      history_data3.push(temp3);
+      var temp4 = Number(str["template_temp4"]);
+      history_data4.push(temp4);
+      var temp5 = Number(str["template_temp5"]);
+      history_data5.push(temp5);
+
+      var ratio1 = Number(str["temp_ratio1"]).toFixed(1);
+      temp_ratio1.push(ratio1);
+      var ratio2 = Number(str["temp_ratio2"]).toFixed(1);
+      temp_ratio2.push(ratio2);
+      var ratio3 = Number(str["temp_ratio3"]).toFixed(1);
+      temp_ratio3.push(ratio3);
+      var ratio4 = Number(str["temp_ratio4"]).toFixed(1);
+      temp_ratio4.push(ratio4);
+      var ratio5 = Number(str["temp_ratio5"]).toFixed(1);
+      temp_ratio5.push(ratio5);
+
+
+      history_time.push([hour, minute, second].join(':'));
+
+      option = {
+        tooltip: {
+          position: 'top'
+        },
+        grid: {
+          height: '10%',
+          top: '40%'
+        },
+        xAxis: {
+          type: 'category',
+          data: xhours,
+          axisLabel: {
+            textStyle: {
+              fontSize: 34
+            },
+          },
+
+          axisTick: {
+            show: false
+          },
+
+        },
+        yAxis: {
+          type: 'category',
+          data: ydays,
+
+          axisLabel: {
+            textStyle: {
+              fontSize: 34
+            },
+          },
+
+
+          axisTick: {
+            show: false
+          }
+        },
+        visualMap: {
+          min: 0,
+          max: 300,
+          calculable: true,
+          color: ["#a50026", "#d73027", "#f46d43", "#fdae61", "#fee090", "#ffffbf", "#e0f3f8", "#abd9e9", "#74add1", "#4575b4", "#313695",],
+          orient: 'horizontal',
+          left: 'center',
+          bottom: '20%',
+          textStyle: {
+            color: '#fff',
+            fontSize: 34
+          }
+        },
+        series: [
+          {
+            name: '监测点温度（℃）',
+            type: 'heatmap',
+            data: data,
+
+            label: {
+              show: true,
+              fontSize: 34
+            },
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 20,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
+              }
+            }
+          }
+        ]
+      };
+
+      if (option && typeof option === 'object') {
+        showChart.setOption(option);
+      }
+      window.addEventListener('resize', showChart.resize);
+
+
+    }
+
+    /******************* 历史温度曲线 ******************/
+
+
+    function hidder() {
+      document.getElementById('window').style.visibility = "hidden";
+      document.getElementById('tankuang').style.visibility = "hidden";
+      document.getElementById('header-right').style.visibility = "hidden";
+      document.getElementById('window1').style.visibility = "hidden";
+    }
+    function dianwo1() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data1, temp_ratio1, history_time);
+    }
+    function dianwo2() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data2, temp_ratio2, history_time);
+    }
+
+
+    function dianwo3() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data3, temp_ratio3, history_time);
+    }
+    function dianwo4() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data4, temp_ratio4, history_time);
+    }
+    function dianwo5() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data5, temp_ratio5, history_time);
+    }
+
+
+    function history_curve(temp, ratio, history_time) {
+
+      var dom = document.getElementById('tankuang');
+      var myChart = echarts.init(dom, null, {
+        renderer: 'canvas',
+        useDirtyRect: false
+      });
+      var app = {};
+
+      var option;
+
+
+      option = {
+        tooltip: {
+          trigger: 'axis',
+          position: function (pt) {
+            return [pt[0], '10%'];
+          }
+        },
+
+        title: {
+          left: 'center',
+          text: '历史温度变化曲线',
+          textStyle: {
+            color: "#37a2da",
+            fontSize: 24,
+            fontWeight: 'normal'
+          }
+        },
+        toolbox: {
+          feature: {
+            dataZoom: {
+              yAxisIndex: 'none'
+            },
+            restore: {},
+            saveAsImage: {}
+          }
+        },
+        xAxis: {
+          type: 'category',
+          boundaryGap: false,
+          data: history_time
+        },
+        yAxis: [
+          {
+            name: "温度（℃）",
+            type: 'value',
+            min: 0,
+            max: 300,
+            // boundaryGap: [0, '80%']
+          },
+          {
+            name: "温升率",
+            show: false,
+            type: 'value',
+            min: -10,
+            max: 10,
+            splitLine: {
+              show: false
+            }
+            // boundaryGap: [0, '80%']
+
+          }
+        ],
+        dataZoom: [
+          {
+            type: 'inside',
+            start: 0,
+            end: 10
+          },
+          {
+            start: 0,
+            end: 10
+          }
+        ],
+        series: [
+          {
+            name: '温度(℃):',
+            type: 'line',
+            yAxisIndex: 0,
+            symbol: 'none',
+            sampling: 'lttb',
+            itemStyle: {
+              color: '#37a2da'
+            },
+            lineStyle: {
+              width: 6
+            },
+
+            data: temp
+          },
+          {
+            name: '温升率（℃/10s）:',
+            type: 'line',
+            yAxisIndex: 1,
+            symbol: 'none',
+            sampling: 'lttb',
+            itemStyle: {
+              color: 'rgba(255,255,255,0)'
+            },
+            lineStyle: {
+              width: 4
+            },
+
+            data: ratio
+          }
+
+        ]
+      };
+
+      if (option && typeof option === 'object') {
+        myChart.setOption(option);
+      }
+      window.addEventListener('resize', myChart.resize);
+
+    }
+
+    /******************* 报警函数 ******************/
+    function baojing(str) {
+
+      var red_flag = str["red_flag"];
+      var reset_flag = str["reset_flag"];
+
+
+      // var red_flag = 0;
+      // var reset_flag = 1;
+
+      if (red_flag == 0 && reset_flag == 1) {
+        document.getElementById('alarm').style.visibility = 'hidden';
+
+      }
+      if (red_flag == 1 && reset_flag == 0) {
+        document.getElementById('alarm').style.visibility = 'visible';
+        var text = document.getElementById('text');
+        text.innerHTML = "探测点" + region + '已达' + highest_t + "℃";
+
+
+      }
+
+    }
+
+  </script>
+</body>
+
+</html>
+
+@charset "utf-8";
+
+/* global */
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+html,
+body {
+
+	width: 100%;
+	height: 100%;
+	min-height: 635px;
+	font-family: "microsoft yahei", arial, sans-serif;
+	background-color: #0f1c30;
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: 100% 100%;
+	overflow-x: hidden;
+	overflow-y: auto;
+}
+
+body.bg01 {
+	background-image: url("../img/bg.jpg");
+}
+
+body.bg02 {
+	background-image: url("../img/bg01.png");
+}
+
+/* layout */
+.header {
+	margin: 0 auto;
+	width: 100%;
+	height: 65px;
+	max-width: 1920px;
+	background: url("../img/header1.png") center no-repeat;
+}
+
+.header h3 {
+	margin: 0;
+	padding: 0;
+	line-height: 50px;
+	text-align: center;
+	font-size: 24px;
+	color: #5dc2fe;
+}
+
+.header-info {
+	position: absolute;
+	top: 32px;
+	font-size: 18px;
+	color: #73aae5;
+}
+
+.header-info-l {
+	left: 5%;
+	top: 5%;
+	font-size: 50px;
+	text-align: center;
+
+}
+
+.header-info-r {
+	right: 20px;
+}
+
+
+.wrapper {
+	position: absolute;
+	top: 50px;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	min-height: 555px;
+}
+
+
+
+#button1 {
+	margin-left: 18%;
+	margin-top: 5.5%;
+	width: 30px;
+	height: 30px;
+
+}
+
+#button2 {
+	margin-left: 14%;
+	margin-top: 0%;
+	width: 30px;
+	height: 30px;
+
+}
+
+#button3 {
+	margin-left: 13.5%;
+	margin-top: 0%;
+	width: 30px;
+	height: 30px;
+
+}
+
+#button4 {
+	margin-left: 13.5%;
+	margin-top: 0%;
+	width: 30px;
+	height: 30px;
+
+}
+
+#button5 {
+	margin-left: 14%;
+	margin-top: 0%;
+	width: 30px;
+	height: 30px;
+
+}
+
+
+#container {
+	position: absolute;
+	top: 64px;
+	bottom: 15px;
+	left: 0;
+	right: 0;
+}
+
+#alarm {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+@keyframes action {
+	25% {
+		opacity: 0.5
+	}
+
+	50% {
+		opacity: 0.1
+	}
+
+	75% {
+		opacity: 0.5
+	}
+
+	100% {
+		opacity: 0.9
+	}
+}
+
+#alarm1 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm2 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm3 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm4 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm5 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+#alarm2 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm3 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm4 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm5 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm2 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm3 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm4 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm5 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm2 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm3 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm4 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm5 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm2 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm3 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm4 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm5 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm2 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm3 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm4 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm5 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm2 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm3 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm4 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm5 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm2 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm3 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm4 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm5 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm2 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm3 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm4 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm5 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm2 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm3 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm4 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm5 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm2 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm3 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm4 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm5 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm2 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm3 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm4 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+#alarm5 {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	width: 100%;
+	height: 30%;
+	text-align: center;
+	font-size: 80px;
+	font-family: Microsoft YaHei;
+	color: #f31e29;
+	background: url("../img/alarm2.png") 20% no-repeat;
+	background-size: 15% 100%;
+	
+	animation: action 1s linear infinite;
+	
+}
+
+
+#flexCon {
+	height: 100%;
+	display: -webkit-flex;
+	display: -ms-flexbox;
+	display: flex;
+	-webkit-flex-direction: column;
+	-ms-flex-direction: column;
+	flex-direction: column;
+}
+
+
+
+#flexCon1 {
+	height: 100%;
+	display: -webkit-flex;
+	display: -ms-flexbox;
+	display: flex;
+	-webkit-flex-direction: column;
+	-ms-flex-direction: column;
+	flex-direction: column;
+}
+
+
+
+#flexCon2 {
+	height: 100%;
+	display: -webkit-flex;
+	display: -ms-flexbox;
+	display: flex;
+	-webkit-flex-direction: column;
+	-ms-flex-direction: column;
+	flex-direction: column;
+}
+
+#flexCon3 {
+	height: 100%;
+	display: -webkit-flex;
+	display: -ms-flexbox;
+	display: flex;
+	-webkit-flex-direction: column;
+	-ms-flex-direction: column;
+	flex-direction: column;
+}
+
+#flexCon4 {
+	height: 100%;
+	display: -webkit-flex;
+	display: -ms-flexbox;
+	display: flex;
+	-webkit-flex-direction: column;
+	-ms-flex-direction: column;
+	flex-direction: column;
+}
+
+#flexCon5 {
+	height: 100%;
+	display: -webkit-flex;
+	display: -ms-flexbox;
+	display: flex;
+	-webkit-flex-direction: column;
+	-ms-flex-direction: column;
+	flex-direction: column;
+}
+
+
+.flex-row {
+	-webkit-flex: 1;
+	-ms-flex: 1;
+	flex: 1;
+	display: -webkit-flex;
+	display: -ms-flexbox;
+	display: flex;
+}
+
+.flex-cell {
+	-webkit-flex: 1;
+	-ms-flex: 1;
+	flex: 1;
+	padding: 15px;
+}
+
+
+.flex-cell-lc {
+	-webkit-flex: 5;
+	-ms-flex: 5;
+	flex: 5;
+}
+
+.chart-wrapper {
+	position: relative;
+	height: 100%;
+}
+
+.chart-title {
+	height: 30px;
+	font-size: 20px;
+	font-weight: normal;
+	color: #5ac8fa;
+}
+
+
+.chart-origin {
+	position: absolute;
+	top: 30px;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	background-image: url("../img/tube.png");
+	background-size: cover;
+	background-repeat: no-repeat;
+	background-position: center;
+	border-style: solid;
+	border-width: 26px 27px 27px;
+	border-image: url("../img/panel.png") 26 27 27 fill / 1 / 0 repeat;
+
+}
+
+.chart {
+	position: absolute;
+	top: 30px;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	border-style: solid;
+	border-width: 26px 27px 27px;
+	border-image: url("../img/panel.png") 26 27 27 fill / 1 / 0 repeat;
+
+}   
+
+
+.jianmo {
+	position: absolute;
+	left: 0px;
+	top: 50%;
+	width: 100%;
+	height: 50%;
+
+
+}
+
+.window1 {
+	position: absolute;
+	left: 0px;
+	top: 0px;
+	background-image: url("../img/bg01.png");
+	width: 100%;
+	height: 100%;
+	opacity: 1;
+
+
+
+
+
+}
+
+
+#ss {
+	height: 100%;
+	width: 100%;
+	animation: action 1s linear infinite;
+}
+
+
+
+.tankuang {
+	position: absolute;
+	width: 50%;
+	height: 75%;
+	border-radius: 5px;
+	margin: 5% auto;
+	background: #20294dd7;
+	opacity: 1;
+	top: 0px;
+	left: 30%;
+
+
+
+
+}
+
+#header-right {
+	position: absolute;
+	width: 25px;
+	height: 25px;
+	border-radius: 5px;
+	background: red;
+	color: #fff;
+	right: 5px;
+	top: 5px;
+	text-align: center;
+
+
+
+}
+
+
+/* media query */
+@media (max-width:1900px) {
+	#header {
+		height: 48px;
+	}
+
+	#container {
+		top: 36px;
+		bottom: 10px;
+	}
+
+	.header-title {
+		line-height: 42px;
+		font-size: 22px;
+	}
+
+	.flex-cell {
+		padding: 10px;
+	}
+
+	.chart-title {
+		height: 24px;
+		font-size: 16px;
+	}
+
+	.chart-div {
+		top: 24px;
+	}
+}
+
+
+@-webkit-keyframes spin {
+	0% {
+		-webkit-transform: rotate(0deg);
+		-ms-transform: rotate(0deg);
+		transform: rotate(0deg)
+	}
+
+	100% {
+		-webkit-transform: rotate(360deg);
+		-ms-transform: rotate(360deg);
+		transform: rotate(360deg)
+	}
+}
+
+@keyframes spin {
+	0% {
+		-webkit-transform: rotate(0deg);
+		-ms-transform: rotate(0deg);
+		transform: rotate(0deg)
+	}
+
+	100% {
+		-webkit-transform: rotate(360deg);
+		-ms-transform: rotate(360deg);
+		transform: rotate(360deg)
+	}
+}

@@ -9,7 +9,6 @@ CONFIG += c++11 resources_big
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    Temp_distance_save.cpp \
     demodulation.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -18,7 +17,6 @@ SOURCES += \
 
 HEADERS += \
     CirQueue.h \
-    Temp_distance_save.h \
     demodulation.h \
     mainwindow.h \
     udp_recv.h \

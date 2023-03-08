@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1" />
+  <title>E2</title>
+  <link rel="stylesheet" href="css/bootstrap.min.css" />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+
+<body onload="getnow()" class='bg02'>
+
+
+  <header class="header">
+    <h3>飞机引气泄露监测</h3>
+    <div class="header-info header-info-l">最高温度：<span id="highest"></span>℃</div>
+    <div class="header-info header-info-r">时间：<span id="nowspan"></span></div>
+  </header>
+
+
+  <div class="wrapper">
+    <div id="container">
+      <div id="flexCon">
+
+
+        <div class="flex-row">
+          <div class="flex-cell flex-cell-lc">
+            <div class="chart-wrapper">
+              <div class="chart" id="chart">
+              </div>
+
+
+
+
+            </div>
+          </div>
+        </div>
+
+
+
+        <div class="flex-row">
+          <div class="flex-cell flex-cell-lc">
+            <div class="chart-wrapper">
+              <div class="chart-origin" id="show">
+                <!-- <img id="alarm_p" src="./img/alarm2.png"> -->
+                <div id="alarm"><span id="text" style="margin-top: 3%; display:block;"></span></div>
+
+                <img id="button1" src="./img/button.png" onclick="dianwo1()">
+                <img id="button2" src="./img/button.png" onclick="dianwo2()">
+                <img id="button3" src="./img/button.png" onclick="dianwo3()">
+                <img id="button4" src="./img/button.png" onclick="dianwo4()">
+                <img id="button5" src="./img/button.png" onclick="dianwo5()">
+                <img id="button6" src="./img/button.png" onclick="dianwo6()">
+                <img id="button7" src="./img/button.png" onclick="dianwo7()">
+                <img id="button8" src="./img/button.png" onclick="dianwo8()">
+                <img id="button9" src="./img/button.png" onclick="dianwo9()">
+                <img id="button10" src="./img/button.png" onclick="dianwo10()">
+                <img id="button11" src="./img/button.png" onclick="dianwo11()">
+                <img id="button12" src="./img/button.png" onclick="dianwo12()">
+                <img id="button13" src="./img/button.png" onclick="dianwo13()">
+                <img id="button14" src="./img/button.png" onclick="dianwo14()">
+                <img id="button15" src="./img/button.png" onclick="dianwo15()">
+                <img id="button16" src="./img/button.png" onclick="dianwo16()">
+                <img id="button17" src="./img/button.png" onclick="dianwo17()">
+                <img id="button18" src="./img/button.png" onclick="dianwo18()">
+                <img id="button19" src="./img/button.png" onclick="dianwo19()">
+                <img id="button20" src="./img/button.png" onclick="dianwo20()">
+                <img id="button21" src="./img/button.png" onclick="dianwo21()">
+                <img id="button22" src="./img/button.png" onclick="dianwo22()">
+                <img id="button23" src="./img/button.png" onclick="dianwo23()">
+                <img id="button24" src="./img/button.png" onclick="dianwo24()">
+                <img id="button25" src="./img/button.png" onclick="dianwo25()">
+                <img id="button26" src="./img/button.png" onclick="dianwo26()">
+                <img id="button27" src="./img/button.png" onclick="dianwo27()">
+                <img id="button28" src="./img/button.png" onclick="dianwo28()">
+                <img id="button29" src="./img/button.png" onclick="dianwo29()">
+                <img id="button30" src="./img/button.png" onclick="dianwo30()">
+                <img id="button31" src="./img/button.png" onclick="dianwo31()">
+                <img id="button32" src="./img/button.png" onclick="dianwo32()">
+                <img id="button33" src="./img/button.png" onclick="dianwo33()">
+                <img id="button34" src="./img/button.png" onclick="dianwo34()">
+                <img id="button35" src="./img/button.png" onclick="dianwo35()">
+                <img id="button36" src="./img/button.png" onclick="dianwo36()">
+                <img id="button37" src="./img/button.png" onclick="dianwo37()">
+                <img id="button38" src="./img/button.png" onclick="dianwo38()">
+                <img id="button39" src="./img/button.png" onclick="dianwo39()">
+                <img id="button40" src="./img/button.png" onclick="dianwo40()">
+                <img id="button41" src="./img/button.png" onclick="dianwo41()">
+                <img id="button42" src="./img/button.png" onclick="dianwo42()">
+                <img id="button43" src="./img/button.png" onclick="dianwo43()">
+                <img id="button44" src="./img/button.png" onclick="dianwo44()">
+                <img id="button45" src="./img/button.png" onclick="dianwo45()">
+                <img id="button46" src="./img/button.png" onclick="dianwo46()">
+                <img id="button47" src="./img/button.png" onclick="dianwo47()">
+                <img id="button48" src="./img/button.png" onclick="dianwo48()">
+                <img id="button49" src="./img/button.png" onclick="dianwo49()">
+                <img id="button50" src="./img/button.png" onclick="dianwo50()">
+               
+             
+                <div class="jianmo" id="jianmo"></div>
+                <div class="window1" id="window"></div>
+                <!-- <div class="window2" id="window1">
+                  <img id="ss" src="./img/red.png">
+                </div> -->
+                <div class="tankuang" id="tankuang"></div>
+                <div id="header-right" onclick="hidder()">x</div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+
+  <script type="text/javascript" src="js/jquery-3.3.1.min.js"></script>
+  <script type="text/javascript" src="js/echarts-3.8.5.min.js"></script>
+  <script type="text/javascript" src="js/echarts-map-world.js"></script>
+  <script type="text/javascript" src="js/echarts-map-china.js"></script>
+  <script type="text/javascript" src="js/echarts-china-provinces/jiangsu.js"></script>
+  <script type="text/javascript" src="js/echarts-china-cities/jiang1_su1_su1_zhou1.js"></script>
+  <script type="text/javascript" src="js/echarts-china-counties/jiang1su1_su1zhou1_kun1shan1shi4.js"></script>
+  <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/echarts@5.3.3/dist/echarts.min.js"></script>
+  <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/echarts@5.4.0/dist/echarts.min.js"></script>
+  <script src="./echarts.min.js"></script>
+  <script src="./echarts.js"></script>
+  <script type="text/javascript">
+
+    let history_data11 = [];
+    let history_data21 = [];
+    let history_data31 = [];
+    let history_data41 = [];
+    let history_data51 = [];
+    let history_data12 = [];
+    let history_data22 = [];
+    let history_data32 = [];
+    let history_data42 = [];
+    let history_data52 = [];
+    let history_data13 = [];
+    let history_data23 = [];
+    let history_data33 = [];
+    let history_data43 = [];
+    let history_data53 = [];
+    let history_data14 = [];
+    let history_data24 = [];
+    let history_data34 = [];
+    let history_data44 = [];
+    let history_data54 = [];
+    let history_data15 = [];
+    let history_data25 = [];
+    let history_data35 = [];
+    let history_data45 = [];
+    let history_data55 = [];
+    let history_data16 = [];
+    let history_data26 = [];
+    let history_data36 = [];
+    let history_data46 = [];
+    let history_data56 = [];
+    let history_data17 = [];
+    let history_data27 = [];
+    let history_data37 = [];
+    let history_data47 = [];
+    let history_data57 = [];
+    let history_data18 = [];
+    let history_data28 = [];
+    let history_data38 = [];
+    let history_data48 = [];
+    let history_data58 = [];
+    let history_data19 = [];
+    let history_data29 = [];
+    let history_data39 = [];
+    let history_data49 = [];
+    let history_data59 = [];
+    let history_data1A = [];
+    let history_data2A = [];
+    let history_data3A = [];
+    let history_data4A = [];
+    let history_data5A = [];
+    let history_time = [];
+    let temp_ratio11 = [];
+    let temp_ratio21 = [];
+    let temp_ratio31 = [];
+    let temp_ratio41 = [];
+    let temp_ratio51 = [];
+    let temp_ratio12 = [];
+    let temp_ratio22 = [];
+    let temp_ratio32 = [];
+    let temp_ratio42 = [];
+    let temp_ratio52 = [];
+    let temp_ratio13 = [];
+    let temp_ratio23 = [];
+    let temp_ratio33 = [];
+    let temp_ratio43 = [];
+    let temp_ratio53 = [];
+    let temp_ratio14 = [];
+    let temp_ratio24 = [];
+    let temp_ratio34 = [];
+    let temp_ratio44 = [];
+    let temp_ratio54 = [];
+    let temp_ratio15 = [];
+    let temp_ratio25 = [];
+    let temp_ratio35 = [];
+    let temp_ratio45 = [];
+    let temp_ratio55 = [];
+    let temp_ratio16 = [];
+    let temp_ratio26 = [];
+    let temp_ratio36 = [];
+    let temp_ratio46 = [];
+    let temp_ratio56 = [];
+    let temp_ratio17 = [];
+    let temp_ratio27 = [];
+    let temp_ratio37 = [];
+    let temp_ratio47 = [];
+    let temp_ratio57 = [];
+    let temp_ratio18 = [];
+    let temp_ratio28 = [];
+    let temp_ratio38 = [];
+    let temp_ratio48 = [];
+    let temp_ratio58 = [];
+    let temp_ratio19 = [];
+    let temp_ratio29 = [];
+    let temp_ratio39 = [];
+    let temp_ratio49 = [];
+    let temp_ratio59 = [];
+    let temp_ratio1A = [];
+    let temp_ratio2A = [];
+    let temp_ratio3A = [];
+    let temp_ratio4A = [];
+    let temp_ratio5A = [];
+    let x_data = [];
+    // let dis_temp_1 = [];
+    // let dis_temp_2 = [];
+    // let dis_temp_3 = [];
+    // let dis_temp_4 = [];
+    // let dis_temp_5 = [];
+
+
+    // for (var i = 1; i < 200; i++) {
+    // history_time.push([i, i+1, i+2].join(':'));
+    // }
+    for (var i = 0; i < 32; i++) {
+      x_data.push((i * 0.4).toFixed(1));
+    }
+
+    document.getElementById('window').style.visibility = "hidden";
+    document.getElementById('tankuang').style.visibility = "hidden";
+    document.getElementById('header-right').style.visibility = "hidden";
+    document.getElementById('alarm').style.visibility = 'hidden';
+    // document.getElementById('window1').style.visibility='hidden';
+
+    var hour, minute, second;
+
+    /******************* 获取时间 ******************/
+    function getnow() {
+      //1、获得当前时间，格式化时间
+      var now = new Date();
+      var year = now.getFullYear();
+      var month = now.getMonth() + 1;
+      if (month < 10) {
+        month = "0" + month;
+      }
+      var date = now.getDate();
+      if (date < 10) {
+        date = "0" + date;
+      }
+      hour = now.getHours();
+      if (hour < 10) {
+        hour = "0" + hour;
+      }
+      minute = now.getMinutes();
+      if (minute < 10) {
+        minute = "0" + minute;
+      }
+      second = now.getSeconds();
+      if (second < 10) {
+        second = "0" + second;
+      }
+      var nowstr = year + "年" + month + "月" + date + "日  " + hour + ":" + minute + ":" + second;
+      //alert(nowstr);
+      //2、显示时间 html
+      //获得标签对象
+      var nowspan = document.getElementById("nowspan");
+      nowspan.innerHTML = nowstr;
+      //3、使时间动起来
+      setTimeout("getnow()", 1000);
+    }
+
+
+
+    /******************* 距离温度曲线 ******************/
+    // let dis_temp_1 = [];
+    function dis_temp_curve(str) {
+
+      // let x_data2 = [];
+      
+      // for(var i=0; i<32; ++i){
+      //   x_data2.push([i.toFixed(1)]);
+      //   dis_temp_1.push(str["dis_temp_1"]);
+      // }
+
+
+      var dom = document.getElementById('chart');
+      var dis_temp_Chart = echarts.init(dom, null, {
+        renderer: 'canvas',
+        useDirtyRect: false
+      });
+      var app = {};
+
+      var option;
+
+      option = {
+        title: {
+          text: 'Stacked Line',
+          textStyle: {
+            color: "#5dc2fe"
+          }
+        },
+        tooltip: {
+          trigger: 'axis'
+        },
+        legend: {
+          textStyle: {
+            color: "#5dc2fe"
+          },
+          data: ['波长1','波长2', '波长3', '波长4', '波长5']
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
+        },
+        toolbox: {
+          feature: {
+            saveAsImage: {}
+          }
+        },
+        xAxis: {
+          type: 'category',
+          boundaryGap: false,
+          axisLabel: {
+            textStyle: {
+              color: "#5dc2fe"
+            },
+          },
+          data: x_data
+        },
+        yAxis: {
+          axisLabel: {
+            textStyle: {
+              color: "#5dc2fe"
+            },
+          },
+          type: 'value',
+          min: 0,
+          max: 200
+        },
+        series: [
+          {
+            name: '波长1',
+            type: 'line',
+            
+            itemStyle: {
+              normal: {
+                lineStyle: {
+                  width: 5
+                }
+              }
+            },
+            data: str["dis_temp_1"]
+            // data: dis_temp_1
+
+          },
+          {
+            name: '波长2',
+            type: 'line',
+            
+            itemStyle: {
+              normal: {
+                lineStyle: {
+                  width: 5
+                }
+              }
+            },
+            data: str["dis_temp_2"]
+          },
+          {
+            name: '波长3',
+            type: 'line',
+            
+            itemStyle: {
+              normal: {
+                lineStyle: {
+                  width: 5
+                }
+              }
+            },
+            data: str["dis_temp_3"]
+          },
+          {
+            name: '波长4',
+            type: 'line',
+            
+            itemStyle: {
+              normal: {
+                lineStyle: {
+                  width: 5
+                }
+              }
+            },
+            data: str["dis_temp_4"]
+          },
+          {
+            name: '波长5',
+            type: 'line',
+            
+            itemStyle: {
+              normal: {
+                lineStyle: {
+                  width: 5
+                }
+              }
+            },
+            data:str["dis_temp_5"]
+          }
+        ]
+      };
+
+      if (option && typeof option === 'object') {
+        dis_temp_Chart.setOption(option);
+      }
+
+      window.addEventListener('resize', dis_temp_Chart.resize);
+    }
+    /******************* 最高温度显示 ******************/
+    var highest_t;
+    var region;
+
+    function highTemp(str) {
+      var highest = document.getElementById('highest');
+      highest.innerHTML = str["temperature"];
+      highest_t = str["temperature"];
+      region = str["region"];
+
+    }
+
+
+
+
+
+    // ----------fake data!!!-----------
+
+    // for (var i = 35; i < 60; ++i) {
+    //   history_time.push([10, 31, i].join(':'));
+    // }
+    // for (var i = 0; i < 57; ++i) {
+    //   history_time.push([10, 32, i].join(':'));
+    // }
+    // history_data2.push(
+    //   31,
+    //   31,
+    //   31,
+    //   31,
+    //   38,
+    //   56,
+    //   68,
+    //   74,
+    //   92,
+    //   98,
+    //   103,
+    //   116,
+    //   127,
+    //   134,
+    //   140,
+    //   146,
+    //   151,
+    //   157,
+    //   164,
+    //   164,
+    //   165,
+    //   167,
+    //   170,
+    //   170,
+    //   170,
+    //   175,
+    //   175,
+    //   181,
+    //   181,
+    //   188,
+    //   191,
+    //   191,
+    //   194,
+    //   194,
+    //   194,
+    //   200,
+    //   200,
+    //   200,
+    //   200,
+    //   200,
+    //   200,
+    //   200,
+    //   200,
+    //   200,
+    //   205,
+    //   205,
+    //   205,
+    //   205,
+    //   205,
+    //   205,
+    //   205,
+    //   205,
+    //   205,
+    //   211,
+    //   211,
+    //   211,
+    //   211,
+    //   211,
+    //   211,
+    //   211,
+    //   201,
+    //   200,
+    //   194,
+    //   181,
+    //   175,
+    //   170,
+    //   169,
+    //   167,
+    //   164,
+    //   158,
+    //   156,
+    //   152,
+    //   151,
+    //   145,
+    //   140,
+    //   133,
+    //   122,
+    //   122,
+    //   116,
+    //   112,
+    //   109,
+    //   103,
+    // );
+
+    /******************* 温度显示建模(飞机引气管道) ******************/
+
+
+    function template(str) {
+
+      // prettier-ignore
+
+      var dom = document.getElementById('jianmo');   //bug
+      var showChart = echarts.init(dom, null, {
+        renderer: 'canvas',
+        useDirtyRect: false
+      });
+      var app = {};
+
+      var option;
+
+      // prettier-ignore
+      const xhours = [
+        '1', '2', '3', '4', '5','6', '7', '8', '9', '10','11', '12', '13', '14', '15','16', '17', '18', '19', '20',
+        '21', '22', '23', '24', '25','26', '27', '28', '29', '30','31', '32', '33', '34', '35','36', '37', '38', '39', '40',
+        '41', '42', '43', '44', '45','46', '47', '48', '49', '50'
+       
+
+      ];
+      // prettier-ignore
+      const ydays = [
+        ' '
+      ];
+
+      var data = [[0, 0, str["lambda11"]], [0, 1, str["lambda21"]], [0, 2, str["lambda31"]], [0, 3, str["lambda41"]], [0, 4, str["lambda51"]],
+                  [0, 5, str["lambda12"]], [0, 6, str["lambda22"]], [0, 7, str["lambda32"]], [0, 8, str["lambda42"]], [0, 9, str["lambda52"]],
+                  [0, 10, str["lambda13"]], [0, 11, str["lambda23"]], [0, 12, str["lambda33"]], [0, 13, str["lambda43"]], [0, 14, str["lambda53"]],
+                  [0, 15, str["lambda14"]], [0, 16, str["lambda24"]], [0, 17, str["lambda34"]], [0, 18, str["lambda44"]], [0, 19, str["lambda54"]],
+                  [0, 20, str["lambda15"]], [0, 21, str["lambda25"]], [0, 22, str["lambda35"]], [0, 23, str["lambda45"]], [0, 24, str["lambda55"]],
+                  [0, 25, str["lambda16"]], [0, 26, str["lambda26"]], [0, 27, str["lambda36"]], [0, 28, str["lambda46"]], [0, 29, str["lambda56"]],
+                  [0, 30, str["lambda17"]], [0, 31, str["lambda27"]], [0, 32, str["lambda37"]], [0, 33, str["lambda47"]], [0, 34, str["lambda57"]],
+                  [0, 35, str["lambda18"]], [0, 36, str["lambda28"]], [0, 37, str["lambda38"]], [0, 38, str["lambda48"]], [0, 39, str["lambda58"]],
+                  [0, 40, str["lambda19"]], [0, 41, str["lambda29"]], [0, 42, str["lambda39"]], [0, 43, str["lambda49"]], [0, 44, str["lambda59"]],
+                  [0, 45, str["lambda1A"]], [0, 46, str["lambda2A"]], [0, 47, str["lambda3A"]], [0, 48, str["lambda4A"]], [0, 49, str["lambda5A"]]]
+    
+        .map(function (item) {
+          return [item[1], item[0], item[2] || '-'];
+        });
+
+      // let template_data1=[], template_data2=[],template_data3=[],template_data4=[],template_data5=[];
+      var temp11 = Number(str["lambda11"]);
+      history_data11.push(temp11);
+      var temp21 = Number(str["lambda21"]);
+      history_data21.push(temp21);
+      var temp31 = Number(str["lambda31"]);
+      history_data31.push(temp31);
+      var temp41 = Number(str["lambda41"]);
+      history_data41.push(temp41);
+      var temp51 = Number(str["lambda51"]);
+      history_data51.push(temp51);
+      var temp12 = Number(str["lambda12"]);
+      history_data12.push(temp12);
+      var temp22 = Number(str["lambda22"]);
+      history_data22.push(temp22);
+      var temp32 = Number(str["lambda32"]);
+      history_data32.push(temp32);
+      var temp42 = Number(str["lambda42"]);
+      history_data42.push(temp42);
+      var temp52 = Number(str["lambda52"]);
+      history_data52.push(temp52);
+      var temp13 = Number(str["lambda13"]);
+      history_data13.push(temp13);
+      var temp23 = Number(str["lambda23"]);
+      history_data23.push(temp23);
+      var temp33 = Number(str["lambda33"]);
+      history_data33.push(temp33);
+      var temp43 = Number(str["lambda43"]);
+      history_data43.push(temp43);
+      var temp53 = Number(str["lambda53"]);
+      history_data53.push(temp53);
+      var temp14 = Number(str["lambda14"]);
+      history_data14.push(temp14);
+      var temp24 = Number(str["lambda24"]);
+      history_data24.push(temp24);
+      var temp34 = Number(str["lambda34"]);
+      history_data34.push(temp34);
+      var temp44 = Number(str["lambda44"]);
+      history_data44.push(temp44);
+      var temp54 = Number(str["lambda54"]);
+      history_data54.push(temp54);
+      var temp15 = Number(str["lambda15"]);
+      history_data15.push(temp15);
+      var temp25 = Number(str["lambda25"]);
+      history_data25.push(temp25);
+      var temp35 = Number(str["lambda35"]);
+      history_data35.push(temp35);
+      var temp45 = Number(str["lambda45"]);
+      history_data45.push(temp45);
+      var temp55 = Number(str["lambda55"]);
+      history_data55.push(temp55);
+      var temp16 = Number(str["lambda16"]);
+      history_data16.push(temp16);
+      var temp26 = Number(str["lambda26"]);
+      history_data26.push(temp26);
+      var temp36 = Number(str["lambda36"]);
+      history_data36.push(temp36);
+      var temp46 = Number(str["lambda46"]);
+      history_data46.push(temp46);
+      var temp56 = Number(str["lambda56"]);
+      history_data56.push(temp56);
+      var temp17 = Number(str["lambda17"]);
+      history_data17.push(temp17);
+      var temp27 = Number(str["lambda27"]);
+      history_data27.push(temp27);
+      var temp37 = Number(str["lambda37"]);
+      history_data37.push(temp37);
+      var temp47 = Number(str["lambda47"]);
+      history_data47.push(temp47);
+      var temp57 = Number(str["lambda57"]);
+      history_data57.push(temp57);
+      var temp18 = Number(str["lambda18"]);
+      history_data18.push(temp18);
+      var temp28 = Number(str["lambda28"]);
+      history_data28.push(temp28);
+      var temp38 = Number(str["lambda38"]);
+      history_data38.push(temp38);
+      var temp48 = Number(str["lambda48"]);
+      history_data48.push(temp48);
+      var temp58 = Number(str["lambda58"]);
+      history_data58.push(temp58);
+      var temp19 = Number(str["lambda19"]);
+      history_data19.push(temp19);
+      var temp29 = Number(str["lambda29"]);
+      history_data29.push(temp29);
+      var temp39 = Number(str["lambda39"]);
+      history_data39.push(temp39);
+      var temp49 = Number(str["lambda49"]);
+      history_data49.push(temp49);
+      var temp59 = Number(str["lambda59"]);
+      history_data59.push(temp59);
+      var temp1A = Number(str["lambda1A"]);
+      history_data1A.push(temp1A);
+      var temp2A = Number(str["lambda2A"]);
+      history_data2A.push(temp2A);
+      var temp3A = Number(str["lambda3A"]);
+      history_data3A.push(temp3A);
+      var temp4A = Number(str["lambda4A"]);
+      history_data4A.push(temp4A);
+      var temp5A = Number(str["lambda5A"]);
+      history_data5A.push(temp5A);
+
+      // var ratio11 = Number(str["temp_ratio11"]).toFixed(1);
+      // temp_ratio11.push(ratio11);
+      // var ratio21 = Number(str["temp_ratio21"]).toFixed(1);
+      // temp_ratio21.push(ratio21);
+      // var ratio31 = Number(str["temp_ratio31"]).toFixed(1);
+      // temp_ratio31.push(ratio31);
+      // var ratio41 = Number(str["temp_ratio41"]).toFixed(1);
+      // temp_ratio41.push(ratio41);
+      // var ratio51 = Number(str["temp_ratio51"]).toFixed(1);
+      // temp_ratio51.push(ratio51);
+
+      var ratio11 = Number(str["temp_ratio11"]).toFixed(1);
+      temp_ratio11.push(ratio11);
+      var ratio21 = Number(str["temp_ratio21"]).toFixed(1);
+      temp_ratio21.push(ratio21);
+      var ratio31 = Number(str["temp_ratio31"]).toFixed(1);
+      temp_ratio31.push(ratio31);
+      var ratio41 = Number(str["temp_ratio41"]).toFixed(1);
+      temp_ratio41.push(ratio41);
+      var ratio51 = Number(str["temp_ratio51"]).toFixed(1);
+      temp_ratio51.push(ratio51);
+      var ratio12 = Number(str["temp_ratio12"]).toFixed(1);
+      temp_ratio12.push(ratio12);
+      var ratio22 = Number(str["temp_ratio22"]).toFixed(1);
+      temp_ratio22.push(ratio22);
+      var ratio32 = Number(str["temp_ratio32"]).toFixed(1);
+      temp_ratio32.push(ratio32);
+      var ratio42 = Number(str["temp_ratio42"]).toFixed(1);
+      temp_ratio42.push(ratio42);
+      var ratio52 = Number(str["temp_ratio52"]).toFixed(1);
+      temp_ratio52.push(ratio52);
+      var ratio13 = Number(str["temp_ratio13"]).toFixed(1);
+      temp_ratio13.push(ratio13);
+      var ratio23 = Number(str["temp_ratio23"]).toFixed(1);
+      temp_ratio23.push(ratio23);
+      var ratio33 = Number(str["temp_ratio33"]).toFixed(1);
+      temp_ratio33.push(ratio33);
+      var ratio43 = Number(str["temp_ratio43"]).toFixed(1);
+      temp_ratio43.push(ratio43);
+      var ratio53 = Number(str["temp_ratio53"]).toFixed(1);
+      temp_ratio53.push(ratio53);
+      var ratio14 = Number(str["temp_ratio14"]).toFixed(1);
+      temp_ratio14.push(ratio14);
+      var ratio24 = Number(str["temp_ratio24"]).toFixed(1);
+      temp_ratio24.push(ratio24);
+      var ratio34 = Number(str["temp_ratio34"]).toFixed(1);
+      temp_ratio34.push(ratio34);
+      var ratio44 = Number(str["temp_ratio44"]).toFixed(1);
+      temp_ratio44.push(ratio44);
+      var ratio54 = Number(str["temp_ratio54"]).toFixed(1);
+      temp_ratio54.push(ratio54);
+      var ratio15 = Number(str["temp_ratio15"]).toFixed(1);
+      temp_ratio15.push(ratio15);
+      var ratio25 = Number(str["temp_ratio25"]).toFixed(1);
+      temp_ratio25.push(ratio25);
+      var ratio35 = Number(str["temp_ratio35"]).toFixed(1);
+      temp_ratio35.push(ratio35);
+      var ratio45 = Number(str["temp_ratio45"]).toFixed(1);
+      temp_ratio45.push(ratio45);
+      var ratio55 = Number(str["temp_ratio55"]).toFixed(1);
+      temp_ratio55.push(ratio55);
+      var ratio16 = Number(str["temp_ratio16"]).toFixed(1);
+      temp_ratio16.push(ratio16);
+      var ratio26 = Number(str["temp_ratio26"]).toFixed(1);
+      temp_ratio26.push(ratio26);
+      var ratio36 = Number(str["temp_ratio36"]).toFixed(1);
+      temp_ratio36.push(ratio36);
+      var ratio46 = Number(str["temp_ratio46"]).toFixed(1);
+      temp_ratio46.push(ratio46);
+      var ratio56 = Number(str["temp_ratio56"]).toFixed(1);
+      temp_ratio56.push(ratio56);
+      var ratio17 = Number(str["temp_ratio17"]).toFixed(1);
+      temp_ratio17.push(ratio17);
+      var ratio27 = Number(str["temp_ratio27"]).toFixed(1);
+      temp_ratio27.push(ratio27);
+      var ratio37 = Number(str["temp_ratio37"]).toFixed(1);
+      temp_ratio37.push(ratio37);
+      var ratio47 = Number(str["temp_ratio47"]).toFixed(1);
+      temp_ratio47.push(ratio47);
+      var ratio57 = Number(str["temp_ratio57"]).toFixed(1);
+      temp_ratio57.push(ratio57);
+      var ratio18 = Number(str["temp_ratio18"]).toFixed(1);
+      temp_ratio18.push(ratio18);
+      var ratio28 = Number(str["temp_ratio28"]).toFixed(1);
+      temp_ratio28.push(ratio28);
+      var ratio38 = Number(str["temp_ratio38"]).toFixed(1);
+      temp_ratio38.push(ratio38);
+      var ratio48 = Number(str["temp_ratio48"]).toFixed(1);
+      temp_ratio48.push(ratio48);
+      var ratio58 = Number(str["temp_ratio58"]).toFixed(1);
+      temp_ratio58.push(ratio58);
+      var ratio19 = Number(str["temp_ratio19"]).toFixed(1);
+      temp_ratio19.push(ratio19);
+      var ratio29 = Number(str["temp_ratio29"]).toFixed(1);
+      temp_ratio29.push(ratio29);
+      var ratio39 = Number(str["temp_ratio39"]).toFixed(1);
+      temp_ratio39.push(ratio39);
+      var ratio49 = Number(str["temp_ratio49"]).toFixed(1);
+      temp_ratio49.push(ratio49);
+      var ratio59 = Number(str["temp_ratio59"]).toFixed(1);
+      temp_ratio59.push(ratio59);
+      var ratio1A = Number(str["temp_ratio1A"]).toFixed(1);
+      temp_ratio1A.push(ratio1A);
+      var ratio2A = Number(str["temp_ratio2A"]).toFixed(1);
+      temp_ratio2A.push(ratio2A);
+      var ratio3A = Number(str["temp_ratio3A"]).toFixed(1);
+      temp_ratio3A.push(ratio3A);
+      var ratio4A = Number(str["temp_ratio4A"]).toFixed(1);
+      temp_ratio4A.push(ratio4A);
+      var ratio5A = Number(str["temp_ratio5A"]).toFixed(1);
+      temp_ratio5A.push(ratio5A);
+
+
+      history_time.push([hour, minute, second].join(':'));
+
+      option = {
+        tooltip: {
+          position: 'top'
+        },
+        grid: {
+          height: '20%',
+          top: '0%'
+        },
+        xAxis: {
+          type: 'category',
+          data: xhours,
+          axisLabel: {
+            show: false
+          },
+
+          axisTick: {
+            show: false
+          },
+
+        },
+        yAxis: {
+          type: 'category',
+          data: ydays,
+
+          axisLabel: {
+            textStyle: {
+              fontSize: 34
+            },
+          },
+
+
+          axisTick: {
+            show: false
+          }
+        },
+        visualMap: {
+          min: 0,
+          max: 300,
+          calculable: true,
+          color: ["#a50026", "#d73027", "#f46d43", "#fdae61", "#fee090", "#ffffbf", "#e0f3f8", "#abd9e9", "#74add1", "#4575b4", "#313695",],
+          orient: 'horizontal',
+          left: 'center',
+          bottom: '0%',
+          textStyle: {
+            color: '#fff',
+            fontSize: 34
+          }
+        },
+        series: [
+          {
+            name: '监测点温度（℃）',
+            type: 'heatmap',
+            data: data,
+
+            label: {
+              // show: true,
+              fontSize: 34
+            },
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 20,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
+              }
+            }
+          }
+        ]
+      };
+
+      if (option && typeof option === 'object') {
+        showChart.setOption(option);
+      }
+      window.addEventListener('resize', showChart.resize);
+
+
+    }
+
+
+
+
+
+
+
+
+
+    /******************* 历史温度曲线 ******************/
+
+
+    function hidder() {
+      document.getElementById('window').style.visibility = "hidden";
+      document.getElementById('tankuang').style.visibility = "hidden";
+      document.getElementById('header-right').style.visibility = "hidden";
+      document.getElementById('window1').style.visibility = "hidden";
+    }
+    function dianwo1() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data11, temp_ratio11, history_time);
+    }
+    function dianwo2() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data21, temp_ratio21, history_time);
+    }
+
+
+    function dianwo3() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data31, temp_ratio31, history_time);
+    }
+    function dianwo4() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data41, temp_ratio41, history_time);
+    }
+    function dianwo5() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data51, temp_ratio51, history_time);
+    }
+
+
+
+    function dianwo6() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data12, temp_ratio12, history_time);
+    }
+    function dianwo7() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data22, temp_ratio22, history_time);
+    }
+
+
+    function dianwo8() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data32, temp_ratio32, history_time);
+    }
+    function dianwo9() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data42, temp_ratio42, history_time);
+    }
+    function dianwo10() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data52, temp_ratio52, history_time);
+    }
+
+
+
+    function dianwo11() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data13, temp_ratio13, history_time);
+    }
+    function dianwo12() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data23, temp_ratio23, history_time);
+    }
+
+
+    function dianwo13() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data33, temp_ratio33, history_time);
+    }
+    function dianwo14() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data43, temp_ratio43, history_time);
+    }
+    function dianwo15() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data53, temp_ratio53, history_time);
+    }
+
+
+
+    function dianwo16() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data14, temp_ratio14, history_time);
+    }
+    function dianwo17() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data24, temp_ratio24, history_time);
+    }
+
+
+    function dianwo18() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data34, temp_ratio34, history_time);
+    }
+    function dianwo19() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data44, temp_ratio44, history_time);
+    }
+    function dianwo20() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data54, temp_ratio54, history_time);
+    }
+
+
+
+    function dianwo21() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data15, temp_ratio15, history_time);
+    }
+    function dianwo22() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data25, temp_ratio25, history_time);
+    }
+
+
+    function dianwo23() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data35, temp_ratio35, history_time);
+    }
+    function dianwo24() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data45, temp_ratio45, history_time);
+    }
+    function dianwo25() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data55, temp_ratio55s, history_time);
+    }
+
+
+
+    function dianwo26() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data16, temp_ratio16, history_time);
+    }
+    function dianwo27() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data26, temp_ratio26, history_time);
+    }
+
+
+    function dianwo28() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data36, temp_ratio36, history_time);
+    }
+    function dianwo29() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data46, temp_ratio46, history_time);
+    }
+    function dianwo30() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data56, temp_ratio56, history_time);
+    }
+
+
+
+    function dianwo31() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data17, temp_ratio17, history_time);
+    }
+    function dianwo32() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data27, temp_ratio27, history_time);
+    }
+
+
+    function dianwo33() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data37, temp_ratio37, history_time);
+    }
+    function dianwo34() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data47, temp_ratio47, history_time);
+    }
+    function dianwo35() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data57, temp_ratio57, history_time);
+    }
+
+
+    function dianwo36() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data18, temp_ratio18, history_time);
+    }
+    function dianwo37() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data28, temp_ratio28, history_time);
+    }
+
+
+    function dianwo38() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data38, temp_ratio38, history_time);
+    }
+    function dianwo39() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data48, temp_ratio48, history_time);
+    }
+    function dianwo40() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data58, temp_ratio58, history_time);
+    }
+
+
+
+
+    function dianwo41() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data19, temp_ratio19, history_time);
+    }
+    function dianwo42() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data29, temp_ratio29, history_time);
+    }
+
+
+    function dianwo43() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data39, temp_ratio39, history_time);
+    }
+    function dianwo44() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data49, temp_ratio49, history_time);
+    }
+    function dianwo45() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data59, temp_ratio59, history_time);
+    }
+
+
+
+    function dianwo46() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data1A, temp_ratio1A, history_time);
+    }
+    function dianwo47() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data2A, temp_ratio2A, history_time);
+    }
+
+
+    function dianwo48() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data3A, temp_ratio3A, history_time);
+    }
+    function dianwo49() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data4A, temp_ratio4A, history_time);
+    }
+    function dianwo50() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data5A, temp_ratio5A, history_time);
+    }
+
+
+    function history_curve(temp, ratio, history_time) {
+
+      var dom = document.getElementById('tankuang');
+      var myChart = echarts.init(dom, null, {
+        renderer: 'canvas',
+        useDirtyRect: false
+      });
+      var app = {};
+
+      var option;
+
+
+      option = {
+        tooltip: {
+          trigger: 'axis',
+          position: function (pt) {
+            return [pt[0], '10%'];
+          }
+        },
+
+        title: {
+          left: 'center',
+          text: '历史温度变化曲线',
+          textStyle: {
+            color: "#37a2da",
+            fontSize: 24,
+            fontWeight: 'normal'
+          }
+        },
+        toolbox: {
+          feature: {
+            dataZoom: {
+              yAxisIndex: 'none'
+            },
+            restore: {},
+            saveAsImage: {}
+          }
+        },
+        xAxis: {
+          type: 'category',
+          boundaryGap: false,
+          data: history_time
+        },
+        yAxis: [
+          {
+            name: "温度（℃）",
+            type: 'value',
+            min: 0,
+            max: 300,
+            // boundaryGap: [0, '80%']
+          },
+          {
+            name: "温升率",
+            show: false,
+            type: 'value',
+            min: -10,
+            max: 10,
+            splitLine: {
+              show: false
+            }
+            // boundaryGap: [0, '80%']
+
+          }
+        ],
+        dataZoom: [
+          {
+            type: 'inside',
+            start: 0,
+            end: 10
+          },
+          {
+            start: 0,
+            end: 10
+          }
+        ],
+        series: [
+          {
+            name: '温度(℃):',
+            type: 'line',
+            yAxisIndex: 0,
+            symbol: 'none',
+            sampling: 'lttb',
+            itemStyle: {
+              color: '#37a2da'
+            },
+            lineStyle: {
+              width: 6
+            },
+
+            data: temp
+          },
+          {
+            name: '温升率（℃/10s）:',
+            type: 'line',
+            yAxisIndex: 1,
+            symbol: 'none',
+            sampling: 'lttb',
+            itemStyle: {
+              color: 'rgba(255,255,255,0)'
+            },
+            lineStyle: {
+              width: 4
+            },
+
+            data: ratio
+          }
+
+        ]
+      };
+
+      if (option && typeof option === 'object') {
+        myChart.setOption(option);
+      }
+      window.addEventListener('resize', myChart.resize);
+
+    }
+
+
+
+    /******************* 报警函数 ******************/
+
+
+
+
+
+
+
+
+    function baojing(str) {
+
+      var red_flag = str["red_flag"];
+      var reset_flag = str["reset_flag"];
+
+
+      // var red_flag = 0;
+      // var reset_flag = 1;
+
+      if (red_flag == 0 && reset_flag == 1) {
+        document.getElementById('alarm').style.visibility = 'hidden';
+
+      }
+      if (red_flag == 1 && reset_flag == 0) {
+        document.getElementById('alarm').style.visibility = 'visible';
+        var text = document.getElementById('text');
+        text.innerHTML = "探测点" + region + '已达' + highest_t + "℃";
+
+
+      }
+
+    }
+
+
+
+
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1" />
+  <title>E2</title>
+  <link rel="stylesheet" href="css/bootstrap.min.css" />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+
+<body onload="getnow()" class='bg02'>
+
+
+  <header class="header">
+    <h3>飞机引气泄露监测</h3>
+    <div class="header-info header-info-l">最高温度：<span id="highest"></span>℃</div>
+    <div class="header-info header-info-r">时间：<span id="nowspan"></span></div>
+  </header>
+
+
+  <div class="wrapper">
+    <div id="container">
+      <div id="flexCon">
+
+
+        <div class="flex-row">
+          <div class="flex-cell flex-cell-lc">
+            <div class="chart-wrapper">
+              <div class="chart" id="chart">
+              </div>
+
+
+
+
+            </div>
+          </div>
+        </div>
+
+
+
+        <div class="flex-row">
+          <div class="flex-cell flex-cell-lc">
+            <div class="chart-wrapper">
+              <div class="chart-origin" id="show">
+                <!-- <img id="alarm_p" src="./img/alarm2.png"> -->
+                <div id="alarm"><span id="text" style="margin-top: 3%; display:block;"></span></div>
+
+                <img id="button1" src="./img/button.png" onclick="dianwo1()">
+                <img id="button2" src="./img/button.png" onclick="dianwo2()">
+                <img id="button3" src="./img/button.png" onclick="dianwo3()">
+                <img id="button4" src="./img/button.png" onclick="dianwo4()">
+                <img id="button5" src="./img/button.png" onclick="dianwo5()">
+                <div class="jianmo" id="jianmo"></div>
+                <div class="window1" id="window"></div>
+                <!-- <div class="window2" id="window1">
+                  <img id="ss" src="./img/red.png">
+                </div> -->
+                <div class="tankuang" id="tankuang"></div>
+                <div id="header-right" onclick="hidder()">x</div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+
+  <script type="text/javascript" src="js/jquery-3.3.1.min.js"></script>
+  <script type="text/javascript" src="js/echarts-3.8.5.min.js"></script>
+  <script type="text/javascript" src="js/echarts-map-world.js"></script>
+  <script type="text/javascript" src="js/echarts-map-china.js"></script>
+  <script type="text/javascript" src="js/echarts-china-provinces/jiangsu.js"></script>
+  <script type="text/javascript" src="js/echarts-china-cities/jiang1_su1_su1_zhou1.js"></script>
+  <script type="text/javascript" src="js/echarts-china-counties/jiang1su1_su1zhou1_kun1shan1shi4.js"></script>
+  <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/echarts@5.3.3/dist/echarts.min.js"></script>
+  <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/echarts@5.4.0/dist/echarts.min.js"></script>
+  <script src="./echarts.min.js"></script>
+  <script src="./echarts.js"></script>
+  <script type="text/javascript">
+
+    let history_data1 = [];
+    let history_data2 = [];
+    let history_data3 = [];
+    let history_data4 = [];
+    let history_data5 = [];
+    let history_time = [];
+    let temp_ratio1 = [];//温升率
+    let temp_ratio2 = [];//温升率
+    let temp_ratio3 = [];//温升率
+    let temp_ratio4 = [];//温升率
+    let temp_ratio5 = [];//温升率
+    let x_data = [];
+    // let dis_temp_1 = [];
+    // let dis_temp_2 = [];
+    // let dis_temp_3 = [];
+    // let dis_temp_4 = [];
+    // let dis_temp_5 = [];
+
+
+    // for (var i = 1; i < 200; i++) {
+    // history_time.push([i, i+1, i+2].join(':'));
+    // }
+    for (var i = 0; i < 32; i++) {
+      x_data.push((i * 0.4).toFixed(1));
+    }
+
+    document.getElementById('window').style.visibility = "hidden";
+    document.getElementById('tankuang').style.visibility = "hidden";
+    document.getElementById('header-right').style.visibility = "hidden";
+    document.getElementById('alarm').style.visibility = 'hidden';
+    // document.getElementById('window1').style.visibility='hidden';
+
+    var hour, minute, second;
+
+    /******************* 获取时间 ******************/
+    function getnow() {
+      //1、获得当前时间，格式化时间
+      var now = new Date();
+      var year = now.getFullYear();
+      var month = now.getMonth() + 1;
+      if (month < 10) {
+        month = "0" + month;
+      }
+      var date = now.getDate();
+      if (date < 10) {
+        date = "0" + date;
+      }
+      hour = now.getHours();
+      if (hour < 10) {
+        hour = "0" + hour;
+      }
+      minute = now.getMinutes();
+      if (minute < 10) {
+        minute = "0" + minute;
+      }
+      second = now.getSeconds();
+      if (second < 10) {
+        second = "0" + second;
+      }
+      var nowstr = year + "年" + month + "月" + date + "日  " + hour + ":" + minute + ":" + second;
+      //alert(nowstr);
+      //2、显示时间 html
+      //获得标签对象
+      var nowspan = document.getElementById("nowspan");
+      nowspan.innerHTML = nowstr;
+      //3、使时间动起来
+      setTimeout("getnow()", 1000);
+    }
+
+
+
+    /******************* 距离温度曲线 ******************/
+    // let dis_temp_1 = [];
+    function dis_temp_curve(str) {
+
+      // let x_data2 = [];
+      
+      // for(var i=0; i<32; ++i){
+      //   x_data2.push([i.toFixed(1)]);
+      //   dis_temp_1.push(str["dis_temp_1"]);
+      // }
+
+
+      var dom = document.getElementById('chart');
+      var dis_temp_Chart = echarts.init(dom, null, {
+        renderer: 'canvas',
+        useDirtyRect: false
+      });
+      var app = {};
+
+      var option;
+
+      option = {
+        title: {
+          text: 'Stacked Line',
+          textStyle: {
+            color: "#5dc2fe"
+          }
+        },
+        tooltip: {
+          trigger: 'axis'
+        },
+        legend: {
+          textStyle: {
+            color: "#5dc2fe"
+          },
+          data: ['波长1','波长2', '波长3', '波长4', '波长5']
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
+        },
+        toolbox: {
+          feature: {
+            saveAsImage: {}
+          }
+        },
+        xAxis: {
+          type: 'category',
+          boundaryGap: false,
+          axisLabel: {
+            textStyle: {
+              color: "#5dc2fe"
+            },
+          },
+          data: x_data
+        },
+        yAxis: {
+          axisLabel: {
+            textStyle: {
+              color: "#5dc2fe"
+            },
+          },
+          type: 'value',
+          min: 0,
+          max: 200
+        },
+        series: [
+          {
+            name: '波长1',
+            type: 'line',
+            stack: 'Total',
+            itemStyle: {
+              normal: {
+                lineStyle: {
+                  width: 5
+                }
+              }
+            },
+            data: str["dis_temp_1"]
+            // data: dis_temp_1
+
+          },
+          {
+            name: '波长2',
+            type: 'line',
+            stack: 'Total',
+            itemStyle: {
+              normal: {
+                lineStyle: {
+                  width: 5
+                }
+              }
+            },
+            data: str["dis_temp_2"]
+          },
+          {
+            name: '波长3',
+            type: 'line',
+            stack: 'Total',
+            itemStyle: {
+              normal: {
+                lineStyle: {
+                  width: 5
+                }
+              }
+            },
+            data: str["dis_temp_3"]
+          },
+          {
+            name: '波长4',
+            type: 'line',
+            stack: 'Total',
+            itemStyle: {
+              normal: {
+                lineStyle: {
+                  width: 5
+                }
+              }
+            },
+            data: str["dis_temp_4"]
+          },
+          {
+            name: '波长5',
+            type: 'line',
+            stack: 'Total',
+            itemStyle: {
+              normal: {
+                lineStyle: {
+                  width: 5
+                }
+              }
+            },
+            data:str["dis_temp_5"]
+          }
+        ]
+      };
+
+      if (option && typeof option === 'object') {
+        dis_temp_Chart.setOption(option);
+      }
+
+      window.addEventListener('resize', dis_temp_Chart.resize);
+    }
+    /******************* 最高温度显示 ******************/
+    var highest_t;
+    var region;
+
+    function highTemp(str) {
+      var highest = document.getElementById('highest');
+      highest.innerHTML = str["temperature"];
+      highest_t = str["temperature"];
+      region = str["region"];
+
+    }
+
+
+
+
+
+    // ----------fake data!!!-----------
+
+    // for (var i = 35; i < 60; ++i) {
+    //   history_time.push([10, 31, i].join(':'));
+    // }
+    // for (var i = 0; i < 57; ++i) {
+    //   history_time.push([10, 32, i].join(':'));
+    // }
+    // history_data2.push(
+    //   31,
+    //   31,
+    //   31,
+    //   31,
+    //   38,
+    //   56,
+    //   68,
+    //   74,
+    //   92,
+    //   98,
+    //   103,
+    //   116,
+    //   127,
+    //   134,
+    //   140,
+    //   146,
+    //   151,
+    //   157,
+    //   164,
+    //   164,
+    //   165,
+    //   167,
+    //   170,
+    //   170,
+    //   170,
+    //   175,
+    //   175,
+    //   181,
+    //   181,
+    //   188,
+    //   191,
+    //   191,
+    //   194,
+    //   194,
+    //   194,
+    //   200,
+    //   200,
+    //   200,
+    //   200,
+    //   200,
+    //   200,
+    //   200,
+    //   200,
+    //   200,
+    //   205,
+    //   205,
+    //   205,
+    //   205,
+    //   205,
+    //   205,
+    //   205,
+    //   205,
+    //   205,
+    //   211,
+    //   211,
+    //   211,
+    //   211,
+    //   211,
+    //   211,
+    //   211,
+    //   201,
+    //   200,
+    //   194,
+    //   181,
+    //   175,
+    //   170,
+    //   169,
+    //   167,
+    //   164,
+    //   158,
+    //   156,
+    //   152,
+    //   151,
+    //   145,
+    //   140,
+    //   133,
+    //   122,
+    //   122,
+    //   116,
+    //   112,
+    //   109,
+    //   103,
+    // );
+
+    /******************* 温度显示建模(飞机引气管道) ******************/
+
+
+    function template(str) {
+
+      // prettier-ignore
+
+      var dom = document.getElementById('jianmo');   //bug
+      var showChart = echarts.init(dom, null, {
+        renderer: 'canvas',
+        useDirtyRect: false
+      });
+      var app = {};
+
+      var option;
+
+      // prettier-ignore
+      const xhours = [
+        '1', '2', '3', '4', '5'
+
+      ];
+      // prettier-ignore
+      const ydays = [
+        ' '
+      ];
+
+      var data = [[0, 0, str["template_temp1"]], [0, 1, str["template_temp2"]], [0, 2, str["template_temp3"]], [0, 3, str["template_temp4"]], [0, 4, str["template_temp5"]]]
+        .map(function (item) {
+          return [item[1], item[0], item[2] || '-'];
+        });
+
+      // let template_data1=[], template_data2=[],template_data3=[],template_data4=[],template_data5=[];
+      var temp1 = Number(str["template_temp1"]);
+      history_data1.push(temp1);
+      var temp2 = Number(str["template_temp2"]);
+      history_data2.push(temp2);
+      var temp3 = Number(str["template_temp3"]);
+      history_data3.push(temp3);
+      var temp4 = Number(str["template_temp4"]);
+      history_data4.push(temp4);
+      var temp5 = Number(str["template_temp5"]);
+      history_data5.push(temp5);
+
+      var ratio1 = Number(str["temp_ratio1"]).toFixed(1);
+      temp_ratio1.push(ratio1);
+      var ratio2 = Number(str["temp_ratio2"]).toFixed(1);
+      temp_ratio2.push(ratio2);
+      var ratio3 = Number(str["temp_ratio3"]).toFixed(1);
+      temp_ratio3.push(ratio3);
+      var ratio4 = Number(str["temp_ratio4"]).toFixed(1);
+      temp_ratio4.push(ratio4);
+      var ratio5 = Number(str["temp_ratio5"]).toFixed(1);
+      temp_ratio5.push(ratio5);
+
+
+      history_time.push([hour, minute, second].join(':'));
+
+      option = {
+        tooltip: {
+          position: 'top'
+        },
+        grid: {
+          height: '10%',
+          top: '40%'
+        },
+        xAxis: {
+          type: 'category',
+          data: xhours,
+          axisLabel: {
+            textStyle: {
+              fontSize: 34
+            },
+          },
+
+          axisTick: {
+            show: false
+          },
+
+        },
+        yAxis: {
+          type: 'category',
+          data: ydays,
+
+          axisLabel: {
+            textStyle: {
+              fontSize: 34
+            },
+          },
+
+
+          axisTick: {
+            show: false
+          }
+        },
+        visualMap: {
+          min: 0,
+          max: 300,
+          calculable: true,
+          color: ["#a50026", "#d73027", "#f46d43", "#fdae61", "#fee090", "#ffffbf", "#e0f3f8", "#abd9e9", "#74add1", "#4575b4", "#313695",],
+          orient: 'horizontal',
+          left: 'center',
+          bottom: '20%',
+          textStyle: {
+            color: '#fff',
+            fontSize: 34
+          }
+        },
+        series: [
+          {
+            name: '监测点温度（℃）',
+            type: 'heatmap',
+            data: data,
+
+            label: {
+              show: true,
+              fontSize: 34
+            },
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 20,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
+              }
+            }
+          }
+        ]
+      };
+
+      if (option && typeof option === 'object') {
+        showChart.setOption(option);
+      }
+      window.addEventListener('resize', showChart.resize);
+
+
+    }
+
+
+
+
+
+
+
+
+
+    /******************* 历史温度曲线 ******************/
+
+
+    function hidder() {
+      document.getElementById('window').style.visibility = "hidden";
+      document.getElementById('tankuang').style.visibility = "hidden";
+      document.getElementById('header-right').style.visibility = "hidden";
+      document.getElementById('window1').style.visibility = "hidden";
+    }
+    function dianwo1() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data1, temp_ratio1, history_time);
+    }
+    function dianwo2() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data2, temp_ratio2, history_time);
+    }
+
+
+    function dianwo3() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data3, temp_ratio3, history_time);
+    }
+    function dianwo4() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data4, temp_ratio4, history_time);
+    }
+    function dianwo5() {
+      document.getElementById('window').style.visibility = "visible";
+      document.getElementById('tankuang').style.visibility = "visible";
+      document.getElementById('header-right').style.visibility = "visible";
+      history_curve(history_data5, temp_ratio5, history_time);
+    }
+
+
+    function history_curve(temp, ratio, history_time) {
+
+      var dom = document.getElementById('tankuang');
+      var myChart = echarts.init(dom, null, {
+        renderer: 'canvas',
+        useDirtyRect: false
+      });
+      var app = {};
+
+      var option;
+
+
+      option = {
+        tooltip: {
+          trigger: 'axis',
+          position: function (pt) {
+            return [pt[0], '10%'];
+          }
+        },
+
+        title: {
+          left: 'center',
+          text: '历史温度变化曲线',
+          textStyle: {
+            color: "#37a2da",
+            fontSize: 24,
+            fontWeight: 'normal'
+          }
+        },
+        toolbox: {
+          feature: {
+            dataZoom: {
+              yAxisIndex: 'none'
+            },
+            restore: {},
+            saveAsImage: {}
+          }
+        },
+        xAxis: {
+          type: 'category',
+          boundaryGap: false,
+          data: history_time
+        },
+        yAxis: [
+          {
+            name: "温度（℃）",
+            type: 'value',
+            min: 0,
+            max: 300,
+            // boundaryGap: [0, '80%']
+          },
+          {
+            name: "温升率",
+            show: false,
+            type: 'value',
+            min: -10,
+            max: 10,
+            splitLine: {
+              show: false
+            }
+            // boundaryGap: [0, '80%']
+
+          }
+        ],
+        dataZoom: [
+          {
+            type: 'inside',
+            start: 0,
+            end: 10
+          },
+          {
+            start: 0,
+            end: 10
+          }
+        ],
+        series: [
+          {
+            name: '温度(℃):',
+            type: 'line',
+            yAxisIndex: 0,
+            symbol: 'none',
+            sampling: 'lttb',
+            itemStyle: {
+              color: '#37a2da'
+            },
+            lineStyle: {
+              width: 6
+            },
+
+            data: temp
+          },
+          {
+            name: '温升率（℃/10s）:',
+            type: 'line',
+            yAxisIndex: 1,
+            symbol: 'none',
+            sampling: 'lttb',
+            itemStyle: {
+              color: 'rgba(255,255,255,0)'
+            },
+            lineStyle: {
+              width: 4
+            },
+
+            data: ratio
+          }
+
+        ]
+      };
+
+      if (option && typeof option === 'object') {
+        myChart.setOption(option);
+      }
+      window.addEventListener('resize', myChart.resize);
+
+    }
+
+
+
+    /******************* 报警函数 ******************/
+
+
+
+
+
+
+
+
+    function baojing(str) {
+
+      var red_flag = str["red_flag"];
+      var reset_flag = str["reset_flag"];
+
+
+      // var red_flag = 0;
+      // var reset_flag = 1;
+
+      if (red_flag == 0 && reset_flag == 1) {
+        document.getElementById('alarm').style.visibility = 'hidden';
+
+      }
+      if (red_flag == 1 && reset_flag == 0) {
+        document.getElementById('alarm').style.visibility = 'visible';
+        var text = document.getElementById('text');
+        text.innerHTML = "探测点" + region + '已达' + highest_t + "℃";
+
+
+      }
+
+    }
+
+
+
+
+  </script>
+</body>
+
+</html>
